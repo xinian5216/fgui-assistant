@@ -2,6 +2,8 @@
 
 感谢你关注 FGUI Assistant！欢迎通过 Issue 和 Pull Request 参与贡献。
 
+编码 Agent / 新贡献者先读仓库根目录 [AGENTS.md](AGENTS.md)（本地索引：命令、布局约束、不要改菜单注册、不要用官方 ScrollPane/GList.SetVirtual）。不要靠 GitHub 网页当说明书。
+
 ## 开发环境
 
 - Node.js 16+（仅用于编译与测试，编辑器运行不需要 Node）
@@ -39,6 +41,8 @@ npm test        # Node 冒烟测试（不需要 FairyGUI）
 - **规则不硬编码**：项目规范写入 `config.json` 配置系统，不写死在业务逻辑里。
 - **性能**：不做每帧全量扫描；扫描按批次进行并带进度。
 - 模块化：规则放 `src/rules/`，编辑器交互放 `src/services/`，界面放 `src/ui/`。
+- **文档同步**：改用户可见行为时更新本仓库 `README.md` 与 `CHANGELOG.md`，不要只改 GitHub 描述。
+- **插件窗口**：内容必须限制在 Viewport 内并纵向滚动；禁止用加高窗口掩盖溢出。
 
 ## 提交信息
 

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.1-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.2-green.svg)](CHANGELOG.md)
 
 FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工记忆的 UI 规范变成可视化检查流程。
 
@@ -11,7 +11,7 @@ FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工�
 - 能安全修复的项目提供一键修复
 - 需要设计师判断的项目只提示，不擅自修改
 
-**版本：** 0.1.0  
+**版本：** 0.1.2  
 **语言：** TypeScript  
 **推荐编辑器：** FairyGUI Editor 2021.3 及以上（API 基于 2021.3.0 公开类型定义）
 
@@ -78,6 +78,11 @@ FGUIAssistant/
     rules/                  各检查规则
     services/               选择、扫描、修复、字体
     ui/                     面板与各页签
+      Layout.ts             布局常量、滚动几何
+      Scroll.ts             Viewport 裁剪 / 纵向滚动 / 虚拟列表
+      MainPanel.ts          TabBar + ContentViewport
+      FloatingWindow.ts     独立窗口（可缩放）
+      pages/                各页签
   typings/                  FairyGUI Editor / PuerTS 类型定义
   test/                     规则与配置的 Node 冒烟测试
   config.json               安装后由插件在项目 plugins 目录自动生成
@@ -103,15 +108,15 @@ FGUIAssistant/
 
 | 页签 | 作用 |
 |------|------|
-| 首页 | 当前 Package/组件、公共资源横幅、最近检查摘要、一键修复安全项 |
-| 规范检查 | 检查当前组件 / 当前 Package / 整个项目（分批 + 进度），问题列表（定位 / 修复 / 忽略） |
+| 首页 | 当前 Package/组件、公共资源横幅、最近检查摘要（最多 5 条）、查看全部问题、一键修复安全项 |
+| 规范检查 | 检查当前组件 / 当前 Package / 整个项目（分批 + 进度）；顶部筛选固定，结果列表在 Viewport 内虚拟滚动 |
 | 快速设置 | 对当前选中对象批量：按钮缩放、设为单选、文字轴心、常用字体 |
 | 命名助手 | 显示类型与前缀，加前缀 / 应用名称，扫描命名异常 |
 | 布局模板 | 把选中对象保存为标准位置，之后应用到其他页面 |
 | 红点 | 检查红点 Controller 的 0/1 页与默认页，测试切换 |
 | 发布 | 发布工作流清单 + 发布路径回填 |
 | PS 清单 | 设计稿人工核对清单（按组件绑定） |
-| 设置 | 按钮缩放、字体、受保护 Package、命名规则 |
+| 设置 | 按钮缩放、字体、受保护 Package、命名规则；内容区滚动，底部「重新加载 / 恢复默认 / 保存」固定 |
 
 ---
 
@@ -220,7 +225,7 @@ Component   → Com_
    未打开的组件通过解析 XML 检查，不能直接修复。请先「定位」打开组件，再对当前组件修复。Package 与整个项目扫描按组件分批执行（每个组件之间让出一帧），带进度显示，尽量避免卡顿；超大项目扫描期间建议避免高频编辑操作。
 
 7. **插件 UI 为运行时代码绘制**  
-   未附带 FairyGUI 发布包（`fui.bytes`），以便在无编辑器的环境下开发。外观紧凑、偏深色，适配长期挂在检查器中。
+   未附带 FairyGUI 发布包（`fui.bytes`）。程序化 UI 无法使用官方 `ScrollPane.Setup` / `GList.SetVirtual`（需要包资源）。0.1.2 起用 `clipRect` + 自研纵向 `VScroll` / 规范页虚拟列表，内容不得画出窗口；不要用加高窗口代替裁剪。
 
 8. **字体检测**  
    通过 `FontUtil.GetOSInstalledFontNames` 与项目内 font 资源判断。未找到时提示，不报致命错误，仍允许应用。
@@ -229,7 +234,7 @@ Component   → Com_
 
 ## 开发调试方法
 
-环境：Node.js 16+（仅用于编译测试，编辑器运行不需要 Node）
+环境：Node.js 16+（仅用于编译测试，编辑器运行不需要 Node）。给编码 Agent 的本地索引见 [AGENTS.md](AGENTS.md)。
 
 ```text
 npm install
@@ -263,7 +268,7 @@ npm run watch          # 改源码后自动编译
 npm test
 ```
 
-对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层做 Node 冒烟测试（不启动 FairyGUI）。
+对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层 / 窗口布局与虚拟列表数学做 Node 冒烟测试（当前 74 项，不启动 FairyGUI）。
 
 实际编辑器内测试仍需在 FairyGUI 中完成。
 
@@ -279,8 +284,12 @@ npm test
 6. 切换项目：无旧对象遗留
 7. 关闭再启动 FairyGUI：正常
 8. Inspector 面板仍正常显示与刷新
+9. 打开助手窗口：内容不溢出到编辑器、窗外无透明穿透
+10. 规范检查在大量结果（如 300+ 警告）下只在窗口内滚动，滚轮与滚动条可用，窗口高度不随结果条数增长
+11. 设置页内容可滚动，底部三个按钮始终可见
+12. 拖动窗口右下角缩放后，Tab / 内容区 / 底栏仍对齐，无控件飘出
 
-> 历史问题：0.1.0 曾因用 3 参 `AddItem` 在根 MenuBar 注册无子菜单的顶级项，导致点击菜单时 `MenuBar.Popup` 抛 NullReferenceException，0.1.1 已修复。
+> 历史问题：0.1.0 曾因用 3 参 `AddItem` 在根 MenuBar 注册无子菜单的顶级项，导致点击菜单时 `MenuBar.Popup` 抛 NullReferenceException，0.1.1 已修复。0.1.1 窗口曾因未裁剪 Viewport、规范页用 `y += height` 堆叠全部结果，导致透明溢出，0.1.2 已用 clip + 滚动修复。
 
 推送与 PR 会自动运行 GitHub Actions（编译 + 测试），见 `.github/workflows/ci.yml`。
 
