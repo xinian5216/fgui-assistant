@@ -1,0 +1,20 @@
+{
+  "name": "com.company.fguiassistant",
+  "displayName": "FGUI Assistant",
+  "description": "FairyGUI 项目规范检查与快速设置助手：命名规范、按钮缩放、文字轴心、常用字体、红点控制器、布局模板、发布流程检查。",
+  "version": "0.1.0",
+  "author": {
+    "name": "FGUI Assistant Team"
+  },
+  "icon": "icon.png",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "test": "node test/run-tests.js",
+    "pack": "node scripts/pack.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
