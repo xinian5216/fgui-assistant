@@ -191,7 +191,7 @@ function assert(cond, name) {
 
 const dist = (...p) => require(path.join(__dirname, '..', 'dist', ...p));
 
-const { Config, DEFAULT_CONFIG } = dist('core', 'Config.js');
+const { Config, DEFAULT_CONFIG, migrateConfig, orderedNamingKeys, CONFIG_VERSION } = dist('core', 'Config.js');
 const { Store } = dist('core', 'Store.js');
 const { Engine } = dist('core', 'RuleEngine.js');
 const { getNamingType } = dist('rules', 'NamingRule.js');
@@ -201,13 +201,55 @@ console.log('== Config ==');
 Config.load();
 assert(Config.config.buttonScale === 0.98, '默认按钮缩放 0.98');
 assert(Config.config.namingRules.Button === 'Btn_', 'Button 前缀 Btn_');
+assert(Config.config.namingRules.Text === 'Tex_', 'Text 前缀 Tex_');
+assert(Config.config.namingRules.Image === 'Img_', 'Image 前缀 Img_');
+assert(Config.config.namingRules.List === 'Lst_', 'List 前缀 Lst_');
+assert(Config.config.namingRules.ProgressBar === 'Bar_', 'ProgressBar 前缀 Bar_');
+assert(Config.config.namingRules.ComboBox === 'Box_', 'ComboBox 前缀 Box_');
+assert(Config.config.namingRules.Loader === 'Lod_', 'Loader 前缀 Lod_');
+assert(Config.config.namingRules.Component === 'Com_', 'Component 前缀 Com_');
+assert(Config.config.namingRules.Controller === 'C_', 'Controller 前缀 C_');
+assert(orderedNamingKeys(Config.config.namingRules).join(',') === 'Text,Image,Button,List,ProgressBar,ComboBox,Loader,Component,Controller', '设置页命名规则默认顺序');
 assert(fs.existsSync(path.join(tmpBase, 'plugins', 'FGUIAssistant', 'config.json')), '默认配置已写入项目插件目录');
 fs.writeFileSync(path.join(tmpBase, 'plugins', 'FGUIAssistant', 'config.json'), JSON.stringify({ buttonScale: 0.95, namingRules: { Button: 'BtnX_' } }));
 Config.load();
 assert(Config.config.buttonScale === 0.95, '用户配置覆盖 buttonScale');
 assert(Config.config.namingRules.Button === 'BtnX_', '用户配置覆盖命名规则');
 assert(Config.config.namingRules.List === 'Lst_', '未覆盖项保留默认');
+assert(Config.config.namingRules.Text === 'Tex_', '未覆盖 Text 使用新默认 Tex_');
 Config.update(c => { c.buttonScale = 0.98; c.namingRules.Button = 'Btn_'; });
+
+console.log('== 命名规则迁移 ==');
+const oldDefault = { namingRules: { Text: 'Txt_', Loader: 'Ldr_', Button: 'Btn_', List: 'Lst_', Image: 'Img_', Component: 'Com_', Controller: 'C_' } };
+fs.writeFileSync(path.join(tmpBase, 'plugins', 'FGUIAssistant', 'config.json'), JSON.stringify(oldDefault));
+Config.load();
+assert(Config.config.namingRules.Text === 'Tex_', '旧默认 Txt_ 迁移为 Tex_');
+assert(Config.config.namingRules.Loader === 'Lod_', '旧默认 Ldr_ 迁移为 Lod_');
+assert(Config.config.namingRules.ProgressBar === 'Bar_', '缺失 ProgressBar 补 Bar_');
+assert(Config.config.namingRules.ComboBox === 'Box_', '缺失 ComboBox 补 Box_');
+assert(Config.config.configVersion === CONFIG_VERSION, '迁移后写入 configVersion');
+
+const customCfg = { namingRules: { Text: 'Text_', Loader: 'Loader_', Button: 'Btn_' } };
+fs.writeFileSync(path.join(tmpBase, 'plugins', 'FGUIAssistant', 'config.json'), JSON.stringify(customCfg));
+Config.load();
+assert(Config.config.namingRules.Text === 'Text_', '用户自定义 Text_ 不被覆盖');
+assert(Config.config.namingRules.Loader === 'Loader_', '用户自定义 Loader_ 不被覆盖');
+assert(Config.config.namingRules.ProgressBar === 'Bar_', '自定义配置仍补齐缺失 Bar_');
+assert(Config.config.namingRules.ComboBox === 'Box_', '自定义配置仍补齐缺失 Box_');
+
+const afterV2 = { configVersion: CONFIG_VERSION, namingRules: { Text: 'Txt_', Loader: 'Ldr_' } };
+fs.writeFileSync(path.join(tmpBase, 'plugins', 'FGUIAssistant', 'config.json'), JSON.stringify(afterV2));
+Config.load();
+assert(Config.config.namingRules.Text === 'Txt_', '已迁移版本中用户改回 Txt_ 不再自动覆盖');
+assert(Config.config.namingRules.Loader === 'Ldr_', '已迁移版本中用户改回 Ldr_ 不再自动覆盖');
+
+const restored = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+assert(restored.namingRules.Text === 'Tex_' && restored.namingRules.Loader === 'Lod_', '恢复默认使用新规范 Tex_/Lod_');
+assert(migrateConfig({ namingRules: { Text: 'Txt_', Loader: 'Ldr_' } }) === true, 'migrateConfig 对旧默认返回 true');
+Config.update(c => {
+    const d = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    for (const k of Object.keys(d)) c[k] = d[k];
+});
 
 console.log('== Store / 忽略 ==');
 Store.load();
@@ -226,7 +268,7 @@ const xmlText = `<?xml version="1.0" encoding="utf-8"?>
   <controller name="C_HongDian" pages="a1,0,a2,1"/>
   <displayList>
     <image id="n1" name="Img_Bg" xy="0,0" size="750,1334"/>
-    <text id="n2" name="Txt_Title" xy="100,50" size="200,40" font="三极拙楷简体" fontSize="30"/>
+    <text id="n2" name="Tex_Title" xy="100,50" size="200,40" font="三极拙楷简体" fontSize="30"/>
     <text id="n3" name="title2" xy="100,100" size="200,40" pivot="0.5,0.5" anchor="true"/>
     <component id="n4" name="Btn_Ok" xy="100,200" size="120,40" extention="Button">
       <Button downEffect="scale" downEffectValue="0.98"/>
@@ -252,13 +294,16 @@ console.log('== 规则检查 ==');
 const result = Engine.runScan(model);
 const byRule = (id) => result.issues.filter(i => i.ruleId === id);
 assert(byRule('naming').some(i => i.objectName === 'button2'), '命名: button2 缺少 Btn_ 前缀');
-assert(byRule('naming').some(i => i.objectName === 'title2'), '命名: title2 缺少 Txt_ 前缀');
+assert(byRule('naming').some(i => i.objectName === 'title2'), '命名: title2 缺少 Tex_ 前缀');
+const titleIssue = byRule('naming').find(i => i.objectName === 'title2');
+assert(titleIssue && titleIssue.detail.indexOf('Tex_title2') >= 0, '建议只补前缀不改原名');
+assert(titleIssue && titleIssue.fixLabel === '改为 Tex_title2', '修复标签为改为 Tex_title2');
 assert(byRule('naming').some(i => i.objectName === 'list1'), '命名: list1 缺少 Lst_ 前缀');
 assert(!byRule('naming').some(i => i.objectName === 'Btn_Ok'), '命名: Btn_Ok 通过');
 assert(byRule('naming').every(i => i.fixable === false), 'XML 扫描结果不可直接修复');
 assert(byRule('buttonScale').some(i => i.objectName === 'button2'), '按钮缩放: button2 缩放为 1 报警');
 assert(!byRule('buttonScale').some(i => i.objectName === 'Btn_Ok'), '按钮缩放: Btn_Ok 0.98 通过');
-assert(byRule('textPivot').some(i => i.objectName === 'Txt_Title'), '文字轴心: Txt_Title 未居中报警');
+assert(byRule('textPivot').some(i => i.objectName === 'Tex_Title'), '文字轴心: Tex_Title 未居中报警');
 assert(!byRule('textPivot').some(i => i.objectName === 'title2'), '文字轴心: title2 通过');
 assert(byRule('redDot').length === 0, '红点: 0/1 页面齐全且默认 0 通过');
 assert(byRule('screenAdapt').some(i => i.severity === 'info'), '屏幕适配: Main 无法读取设置时提示人工确认');
@@ -300,6 +345,8 @@ assert(getNamingType({ extType: '', objectType: 'list' }) === 'List', 'List');
 assert(getNamingType({ extType: '', objectType: 'text' }) === 'Text', 'Text');
 assert(getNamingType({ extType: '', objectType: 'component' }) === 'Component', 'Component');
 assert(getNamingType({ extType: '', objectType: 'loader' }) === 'Loader', 'Loader');
+assert(getNamingType({ extType: 'ProgressBar', objectType: 'component' }) === 'ProgressBar', 'ProgressBar');
+assert(getNamingType({ extType: 'ComboBox', objectType: 'component' }) === 'ComboBox', 'ComboBox');
 
 console.log('== 布局 / 滚动系统 ==');
 const Layout = dist('ui', 'Layout.js');

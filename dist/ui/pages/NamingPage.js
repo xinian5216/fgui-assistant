@@ -101,7 +101,8 @@ class NamingPage {
         col.add((0, UiKit_1.createLabel)("命名规则（在设置页修改）", { size: 13, bold: true, color: UiKit_1.COLORS.text }), 18);
         const rules = cfg.namingRules || {};
         const lines = [];
-        for (const k of Object.keys(rules))
+        const ruleKeys = (0, Config_1.orderedNamingKeys)(rules);
+        for (const k of ruleKeys)
             lines.push(`${k}  →  ${rules[k]}`);
         col.add((0, UiKit_1.createLabel)(lines.join("\n") || "（无）", { size: 12, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), lines.length * 17 + 4);
         col.space(2);

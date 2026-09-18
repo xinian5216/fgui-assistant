@@ -4,7 +4,7 @@ import { Column, COLORS, UiButton, createLabel, createInput, toast } from '../Ui
 import { getSelection, getExtType, setObjProperty } from '../../services/EditorService';
 import { getNamingType } from '../../rules/NamingRule';
 import { objToInfo } from '../../services/EditorService';
-import { Config } from '../../core/Config';
+import { Config, orderedNamingKeys } from '../../core/Config';
 import { ScanController } from '../../services/ScanController';
 import { App, alert } from '../../Api';
 
@@ -88,7 +88,8 @@ export class NamingPage implements Page {
         col.add(createLabel("命名规则（在设置页修改）", { size: 13, bold: true, color: COLORS.text }), 18);
         const rules = cfg.namingRules || {};
         const lines: string[] = [];
-        for (const k of Object.keys(rules)) lines.push(`${k}  →  ${rules[k]}`);
+        const ruleKeys = orderedNamingKeys(rules);
+        for (const k of ruleKeys) lines.push(`${k}  →  ${rules[k]}`);
         col.add(createLabel(lines.join("\n") || "（无）", { size: 12, color: COLORS.textDim, width: width, wrap: true }), lines.length * 17 + 4);
 
         col.space(2);

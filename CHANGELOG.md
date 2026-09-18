@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.4 — 2026-09-18
+
+### 修复
+
+- **默认命名规范与真实项目不一致**：`Text` 默认 `Txt_` 改为 `Tex_`，`Loader` 默认 `Ldr_` 改为 `Lod_`；补充 `ProgressBar → Bar_`、`ComboBox → Box_`。
+- 旧 `config.json` 中仍等于旧默认值的项自动迁移；用户自定义前缀保留；缺失规则补默认。增加 `configVersion`，避免重复覆盖。
+- 「恢复默认」与设置页顺序同步为新规范。建议名只补前缀、不改原名主体。
+
+### 测试
+
+- 新增默认前缀表、旧默认迁移、自定义不覆盖、缺失补齐、`configVersion` 保护。合计 105 项。
+
 ## 0.1.3 — 2026-09-18
 
 ### 修复
@@ -9,7 +21,7 @@
 
 ### 测试
 
-- 新增滚轮 delta → scrollOffset / visibleStartIndex 方向测试。合计 78 项。
+- 新增滚轮 delta → scrollOffset / visibleStartIndex 方向测试。当时合计 78 项。
 
 ## 0.1.2 — 2026-09-18
 

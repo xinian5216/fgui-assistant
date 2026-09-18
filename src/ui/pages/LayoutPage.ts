@@ -28,7 +28,7 @@ export class LayoutPage implements Page {
         btnSave.setEnabled(!!first);
         col.add(btnSave.view, 26);
         if (!first) {
-            col.add(createLabel("请先选中一个对象（如 Btn_FanHui）", { size: 11, color: COLORS.textDim }), 15);
+            col.add(createLabel("请先选中一个对象（如 Btn_Back）", { size: 11, color: COLORS.textDim }), 15);
         }
 
         const presets = cfg.layoutPresets || [];
@@ -107,7 +107,7 @@ export class LayoutPage implements Page {
         try { name = "" + obj.name; } catch (e) { }
         if (!name) { toast("选中对象没有名称"); return; }
         const self = this;
-        App.Input("模板名称（用于按名称匹配对象，如 Btn_FanHui 或 FanHui）", name, (ret) => {
+        App.Input("模板名称（用于按名称匹配对象，如 Btn_Back 或 Back）", name, (ret) => {
             if (!ret) return;
             const preset: LayoutPreset = {
                 name: ret,

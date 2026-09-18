@@ -28,7 +28,7 @@ class LayoutPage {
         btnSave.setEnabled(!!first);
         col.add(btnSave.view, 26);
         if (!first) {
-            col.add((0, UiKit_1.createLabel)("请先选中一个对象（如 Btn_FanHui）", { size: 11, color: UiKit_1.COLORS.textDim }), 15);
+            col.add((0, UiKit_1.createLabel)("请先选中一个对象（如 Btn_Back）", { size: 11, color: UiKit_1.COLORS.textDim }), 15);
         }
         const presets = cfg.layoutPresets || [];
         col.add((0, UiKit_1.createLabel)(`已保存模板（${presets.length}）`, { size: 13, bold: true, color: UiKit_1.COLORS.text }), 20);
@@ -119,7 +119,7 @@ class LayoutPage {
             return;
         }
         const self = this;
-        Api_1.App.Input("模板名称（用于按名称匹配对象，如 Btn_FanHui 或 FanHui）", name, (ret) => {
+        Api_1.App.Input("模板名称（用于按名称匹配对象，如 Btn_Back 或 Back）", name, (ret) => {
             if (!ret)
                 return;
             const preset = {

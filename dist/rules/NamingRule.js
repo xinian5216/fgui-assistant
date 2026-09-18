@@ -6,6 +6,10 @@ const Types_1 = require("../core/Types");
 function getNamingType(obj) {
     if (obj.extType == "Button")
         return "Button";
+    if (obj.extType == "ProgressBar" || obj.objectType == "progressbar")
+        return "ProgressBar";
+    if (obj.extType == "ComboBox" || obj.objectType == "combobox")
+        return "ComboBox";
     if (obj.objectType == "list")
         return "List";
     if (obj.objectType == "text" || obj.objectType == "richtext" || obj.objectType == "inputtext")
@@ -28,7 +32,7 @@ class NamingRule {
     constructor() {
         this.id = "naming";
         this.name = "命名规范";
-        this.description = "对象名称必须使用类型对应的前缀（如 Btn_、Txt_）";
+        this.description = "对象名称必须使用类型对应的前缀（如 Btn_、Tex_）";
         this.safeFix = true;
     }
     check(ctx) {
@@ -49,7 +53,7 @@ class NamingRule {
                 ruleId: this.id,
                 severity: "warning",
                 title: `${obj.name}：${type} 命名缺少前缀 ${prefix}`,
-                detail: `当前：${obj.name}\n建议：${prefix}xxx`,
+                detail: `当前：${obj.name}\n建议：${prefix}${obj.name}`,
                 objectName: obj.name,
                 objectPath: obj.path,
                 docUrl: ctx.model.docUrl,
@@ -72,7 +76,7 @@ class NamingRule {
                     ruleId: this.id,
                     severity: "info",
                     title: `控制器 ${c.name}：命名缺少前缀 ${ctrlPrefix}`,
-                    detail: `当前：${c.name}\n建议：${ctrlPrefix}xxx\n（控制器请在 FairyGUI 中手动重命名）`,
+                    detail: `当前：${c.name}\n建议：${ctrlPrefix}${c.name}\n（控制器请在 FairyGUI 中手动重命名）`,
                     objectName: c.name,
                     docUrl: ctx.model.docUrl,
                     fixable: false,

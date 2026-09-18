@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.3-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.4-green.svg)](CHANGELOG.md)
 
 FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工记忆的 UI 规范变成可视化检查流程。
 
@@ -11,7 +11,7 @@ FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工�
 - 能安全修复的项目提供一键修复
 - 需要设计师判断的项目只提示，不擅自修改
 
-**版本：** 0.1.3  
+**版本：** 0.1.4  
 **语言：** TypeScript  
 **推荐编辑器：** FairyGUI Editor 2021.3 及以上（API 基于 2021.3.0 公开类型定义）
 
@@ -148,16 +148,18 @@ FGUIAssistant/
 ### 命名规则默认值
 
 ```text
+Text        → Tex_
+Image       → Img_
 Button      → Btn_
 List        → Lst_
-Controller  → C_
-Text        → Txt_
-Image       → Img_
-Loader      → Ldr_
+ProgressBar → Bar_
+ComboBox    → Box_
+Loader      → Lod_
 Component   → Com_
+Controller  → C_
 ```
 
-规则在配置中，不写死在业务逻辑里。后半部分由用户自己决定，例如 `Btn_FanHui`。
+插件只检查类型前缀是否匹配，不判断后半段语义。例如 `Btn_Back`、`Tex_Title`、`C_Select`。
 
 ---
 
@@ -174,7 +176,7 @@ Component   → Com_
 ```json
 {
   "buttonScale": 0.98,
-  "namingRules": { "Button": "Btn_", "List": "Lst_", "Controller": "C_" },
+  "namingRules": { "Text": "Tex_", "Button": "Btn_", "Loader": "Lod_", "Controller": "C_" },
   "fonts": ["三极拙楷简体", "方正北魏楷书简体", "方正大标宋简体"],
   "protectedPackages": ["Common"],
   "layoutPresets": [],
@@ -268,7 +270,7 @@ npm run watch          # 改源码后自动编译
 npm test
 ```
 
-对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层 / 窗口布局与虚拟列表数学 / 滚轮方向做 Node 冒烟测试（当前 78 项，不启动 FairyGUI）。
+对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层 / 窗口布局与虚拟列表数学 / 滚轮方向做 Node 冒烟测试（当前 105 项，不启动 FairyGUI）。
 
 实际编辑器内测试仍需在 FairyGUI 中完成。
 

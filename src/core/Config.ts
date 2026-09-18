@@ -16,7 +16,22 @@ export interface LayoutPreset {
     note?: string;
 }
 
+export const CONFIG_VERSION = 2;
+
+export const NAMING_RULE_ORDER = [
+    "Text",
+    "Image",
+    "Button",
+    "List",
+    "ProgressBar",
+    "ComboBox",
+    "Loader",
+    "Component",
+    "Controller"
+];
+
 export interface AssistantConfig {
+    configVersion?: number;
     buttonScale: number;
     requireButtonDownEffect: boolean;
     namingRules: NamingRules;
@@ -42,16 +57,19 @@ export interface AssistantConfig {
 }
 
 export const DEFAULT_CONFIG: AssistantConfig = {
+    configVersion: CONFIG_VERSION,
     buttonScale: 0.98,
     requireButtonDownEffect: true,
     namingRules: {
+        Text: "Tex_",
+        Image: "Img_",
         Button: "Btn_",
         List: "Lst_",
-        Controller: "C_",
-        Text: "Txt_",
-        Image: "Img_",
-        Loader: "Ldr_",
-        Component: "Com_"
+        ProgressBar: "Bar_",
+        ComboBox: "Box_",
+        Loader: "Lod_",
+        Component: "Com_",
+        Controller: "C_"
     },
     fonts: [
         "三极拙楷简体",
@@ -116,6 +134,60 @@ function mergeConfig(base: AssistantConfig, override: any): AssistantConfig {
     return out;
 }
 
+export function orderedNamingKeys(rules: NamingRules): string[] {
+    const src = rules || {};
+    const seen: { [k: string]: boolean } = {};
+    const out: string[] = [];
+    for (let i = 0; i < NAMING_RULE_ORDER.length; i++) {
+        const k = NAMING_RULE_ORDER[i];
+        if (src[k] !== undefined) {
+            out.push(k);
+            seen[k] = true;
+        }
+    }
+    const keys = Object.keys(src);
+    for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        if (!seen[k]) out.push(k);
+    }
+    return out;
+}
+
+export function migrateConfig(cfg: AssistantConfig): boolean {
+    if (!cfg) return false;
+    let changed = false;
+    const ver = cfg.configVersion || 0;
+    if (!cfg.namingRules) {
+        cfg.namingRules = {};
+        changed = true;
+    }
+    const rules = cfg.namingRules;
+    if (ver < 2) {
+        if (rules.Text === "Txt_") {
+            rules.Text = "Tex_";
+            changed = true;
+        }
+        if (rules.Loader === "Ldr_") {
+            rules.Loader = "Lod_";
+            changed = true;
+        }
+    }
+    const defaults = DEFAULT_CONFIG.namingRules;
+    const dk = Object.keys(defaults);
+    for (let i = 0; i < dk.length; i++) {
+        const k = dk[i];
+        if (rules[k] === undefined || rules[k] === null) {
+            rules[k] = defaults[k];
+            changed = true;
+        }
+    }
+    if (ver < CONFIG_VERSION) {
+        cfg.configVersion = CONFIG_VERSION;
+        changed = true;
+    }
+    return changed;
+}
+
 class ConfigManager {
     private _config: AssistantConfig = cloneDefaults();
     private _path: string = null;
@@ -142,6 +214,8 @@ class ConfigManager {
                 try {
                     const userCfg = JSON.parse(text);
                     this._config = mergeConfig(cloneDefaults(), userCfg);
+                    if (userCfg.configVersion == null) this._config.configVersion = 0;
+                    if (migrateConfig(this._config)) this.save();
                 } catch (e) {
                     logWarn("config.json 解析失败，已使用默认配置: " + e);
                 }

@@ -46,7 +46,8 @@ class SettingsPage {
         self.buildStringList(col, width, "受保护的公共 Package", cfg.protectedPackages, "输入 Package 名称（如 Common）", (arr) => Config_1.Config.update(c => { c.protectedPackages = arr; }));
         col.add((0, UiKit_1.createLabel)("命名规则", { size: 13, bold: true, color: UiKit_1.COLORS.text }), 18);
         const rules = cfg.namingRules || {};
-        for (const k of Object.keys(rules)) {
+        const ruleKeys = (0, Config_1.orderedNamingKeys)(rules);
+        for (const k of ruleKeys) {
             col.row([
                 { obj: (0, UiKit_1.createLabel)(`${k}  →  ${rules[k]}`, { size: 12, color: UiKit_1.COLORS.textDim, width: Math.max(40, width - 150), wrap: false }), w: width - 150 },
                 {
@@ -78,7 +79,7 @@ class SettingsPage {
         const btnAddRule = new UiKit_1.UiButton("添加命名规则", {
             w: width, h: 22, size: 11,
             onClick: () => {
-                Api_1.App.Input("类型名称（如 Button / List / Text / Image / Loader / Component / Controller / MovieClip / Graph）", "", (typeName) => {
+                Api_1.App.Input("类型名称（如 Text / Image / Button / List / ProgressBar / ComboBox / Loader / Component / Controller）", "", (typeName) => {
                     if (!typeName)
                         return;
                     Api_1.App.Input(`${typeName} 的前缀`, "", (prefix) => {

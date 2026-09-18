@@ -1,7 +1,7 @@
 import { FairyGUI } from 'csharp';
 import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, createLabel, toast } from '../UiKit';
-import { Config, DEFAULT_CONFIG } from '../../core/Config';
+import { Config, DEFAULT_CONFIG, orderedNamingKeys } from '../../core/Config';
 import { App, confirm } from '../../Api';
 import { ScanController } from '../../services/ScanController';
 import { refreshFontCache } from '../../services/FontService';
@@ -49,7 +49,8 @@ export class SettingsPage implements Page {
 
         col.add(createLabel("命名规则", { size: 13, bold: true, color: COLORS.text }), 18);
         const rules = cfg.namingRules || {};
-        for (const k of Object.keys(rules)) {
+        const ruleKeys = orderedNamingKeys(rules);
+        for (const k of ruleKeys) {
             col.row([
                 { obj: createLabel(`${k}  →  ${rules[k]}`, { size: 12, color: COLORS.textDim, width: Math.max(40, width - 150), wrap: false }), w: width - 150 },
                 {
@@ -80,7 +81,7 @@ export class SettingsPage implements Page {
         const btnAddRule = new UiButton("添加命名规则", {
             w: width, h: 22, size: 11,
             onClick: () => {
-                App.Input("类型名称（如 Button / List / Text / Image / Loader / Component / Controller / MovieClip / Graph）", "", (typeName) => {
+                App.Input("类型名称（如 Text / Image / Button / List / ProgressBar / ComboBox / Loader / Component / Controller）", "", (typeName) => {
                     if (!typeName) return;
                     App.Input(`${typeName} 的前缀`, "", (prefix) => {
                         Config.update(c => { c.namingRules[typeName] = prefix || ""; });
