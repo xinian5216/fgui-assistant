@@ -82,6 +82,7 @@ class VScroll {
         this._dragStartPos = 0;
         this._hover = false;
         this._disposed = false;
+        this._wheelLogLeft = 8;
         this._w = Math.max(1, w);
         this._h = Math.max(1, h);
         this.view = new csharp_1.FairyGUI.GComponent();
@@ -258,7 +259,15 @@ class VScroll {
         catch (e) { }
         if (!d)
             return;
-        this.scrollTo(this._pos - d * Layout_1.LAYOUT.SCROLL_STEP);
+        const old = this._pos;
+        this.scrollTo(this._pos + (0, Layout_1.wheelToScrollDelta)(d));
+        if (this._wheelLogLeft > 0) {
+            this._wheelLogLeft--;
+            try {
+                console.log("[FGUI助手] wheel delta=" + d + " pos " + old + " -> " + this._pos);
+            }
+            catch (e) { }
+        }
         try {
             ctx.StopPropagation();
         }

@@ -1,6 +1,6 @@
 import { FairyGUI, UnityEngine } from 'csharp';
 import { COLORS, createGraph, fillGraph, clearChildren } from './UiKit';
-import { LAYOUT, clampScroll, thumbMetrics, visibleIndexRange, scrollMax } from './Layout';
+import { LAYOUT, clampScroll, thumbMetrics, visibleIndexRange, scrollMax, wheelToScrollDelta } from './Layout';
 
 export function applyClip(com: FairyGUI.GComponent, w: number, h: number): void {
     const cw = Math.max(1, w);
@@ -67,6 +67,7 @@ export class VScroll {
     private _hover: boolean = false;
     private _wheelHandler: (ctx: FairyGUI.EventContext) => void;
     private _disposed: boolean = false;
+    private _wheelLogLeft: number = 8;
 
     constructor(w: number, h: number) {
         this._w = Math.max(1, w);
@@ -196,7 +197,12 @@ export class VScroll {
         let d = 0;
         try { d = ctx.inputEvent.mouseWheelDelta; } catch (e) { }
         if (!d) return;
-        this.scrollTo(this._pos - d * LAYOUT.SCROLL_STEP);
+        const old = this._pos;
+        this.scrollTo(this._pos + wheelToScrollDelta(d));
+        if (this._wheelLogLeft > 0) {
+            this._wheelLogLeft--;
+            try { console.log("[FGUI助手] wheel delta=" + d + " pos " + old + " -> " + this._pos); } catch (e) { }
+        }
         try { ctx.StopPropagation(); } catch (e) { }
         try { ctx.PreventDefault(); } catch (e) { }
     }

@@ -68,21 +68,8 @@ export class FloatingWindow {
             });
             this.win.AddChild(this.titleBar);
 
-            this.btnClose = new FairyGUI.GComponent();
-            this.btnClose.SetSize(LAYOUT.CLOSE_W, 22);
-            try { this.btnClose.opaque = true; } catch (e) { }
-            const cbBg = createGraph(LAYOUT.CLOSE_W, 22, "#7a3a3a");
-            this.btnClose.AddChild(cbBg);
-            const cbLb = createLabel("✕", { size: 12, color: "#ffffff", bold: true });
-            try {
-                cbLb.autoSize = FairyGUI.AutoSizeType.None;
-                cbLb.SetSize(LAYOUT.CLOSE_W, 16);
-                cbLb.align = FairyGUI.AlignType.Center;
-            } catch (e) { }
-            cbLb.SetXY(0, 3);
-            this.btnClose.AddChild(cbLb);
+            this.btnClose = createCloseButton(LAYOUT.CLOSE_W, 22, () => { self.close(); });
             this.btnClose.SetXY(this._w - 30, 3);
-            this.btnClose.onClick.Add(() => { self.close(); });
             this.win.AddChild(this.btnClose);
 
             const panelW = this._w;
@@ -165,4 +152,51 @@ export class FloatingWindow {
     refresh(): void {
         if (this.panel) this.panel.refresh();
     }
+}
+
+const CLOSE_BG = "#7A3437";
+const CLOSE_BG_HOVER = "#9B4A4E";
+const CLOSE_BG_DOWN = "#5C282B";
+const CLOSE_MARK = "#E8E8E8";
+
+function addCloseMark(parent: FairyGUI.GComponent, w: number, h: number, hex: string): FairyGUI.GGraph[] {
+    const len = Math.max(8, Math.min(w, h) * 0.42);
+    const thick = 2;
+    const cx = w / 2;
+    const cy = h / 2;
+    const make = (rot: number): FairyGUI.GGraph => {
+        const g = createGraph(len, thick, hex);
+        try { g.SetPivot(0.5, 0.5, true); } catch (e) {
+            try { g.SetPivot(0.5, 0.5); } catch (e2) { }
+        }
+        g.SetXY(cx, cy);
+        try { g.rotation = rot; } catch (e) { }
+        parent.AddChild(g);
+        return g;
+    };
+    return [make(45), make(-45)];
+}
+
+function createCloseButton(w: number, h: number, onClose: () => void): FairyGUI.GComponent {
+    const btn = new FairyGUI.GComponent();
+    btn.SetSize(w, h);
+    try { btn.opaque = true; } catch (e) { }
+    const bg = createGraph(w, h, CLOSE_BG);
+    btn.AddChild(bg);
+    addCloseMark(btn, w, h, CLOSE_MARK);
+    let pressed = false;
+    const paint = (mode: string): void => {
+        const hex = mode == "down" ? CLOSE_BG_DOWN : mode == "hover" ? CLOSE_BG_HOVER : CLOSE_BG;
+        fillGraph(bg, w, h, hex);
+    };
+    btn.onRollOver.Add(() => { if (!pressed) paint("hover"); });
+    btn.onRollOut.Add(() => { pressed = false; paint("up"); });
+    btn.onTouchBegin.Add((ctx: FairyGUI.EventContext) => {
+        try { ctx.StopPropagation(); } catch (e) { }
+        pressed = true;
+        paint("down");
+    });
+    btn.onTouchEnd.Add(() => { pressed = false; paint("hover"); });
+    btn.onClick.Add(() => { onClose(); });
+    return btn;
 }

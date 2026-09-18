@@ -6,7 +6,7 @@
 
 FairyGUI Editor 插件（TypeScript → `dist/`）。编辑器加载 `dist/main.js`。目标：把 UI 规范变成检查/安全修复，不擅自改需要设计师判断的内容。
 
-当前版本见 `package.json`（0.1.2）。公开类型以 `typings/editor.d.ts` 为准，不要猜未导出 API。
+当前版本见 `package.json`（0.1.3）。公开类型以 `typings/editor.d.ts` 为准，不要猜未导出 API。
 
 ## 命令
 
@@ -41,7 +41,8 @@ FloatingWindow Root（opaque + clip，背景随窗口拉伸）
 │       └── Footer                    设置 / 发布固定底栏
 ```
 
-- 公共滚动：`src/ui/Scroll.ts` 的 `VScroll`（仅纵向，内容不够不显示条；滚轮 / 拖条 / PageUp·PageDown）。
+- 公共滚动：`src/ui/Scroll.ts` 的 `VScroll`（仅纵向，内容不够不显示条；滚轮 / 拖条 / PageUp·PageDown）。滚轮：FairyGUI `mouseWheelDelta` 向下为正，必须 `pos += delta * step`（与官方 ScrollPane 一致），不要 `pos -= delta`。
+- 关闭按钮：不要用 `GTextField` 画 `✕`（编辑器字体常缺字只剩红块）。用两条旋转 `GGraph` 细线。
 - 规范页：`manageLayout`，固定头 + `VirtualList`（只渲染可见附近 Item）。不要再 `y += height` 把几百条塞进普通 GComponent。
 - 首页最近问题最多 `LAYOUT.HOME_MAX_ISSUES`（5）条，其余走「查看全部问题」。
 - 常量与滚动数学：`src/ui/Layout.ts`。窗口最小/默认尺寸由控件推算，禁止散落魔法宽高。
@@ -66,7 +67,7 @@ FloatingWindow Root（opaque + clip，背景随窗口拉伸）
 
 ## 测试
 
-`test/run-tests.js` 当前 **74** 项：配置、XML、规则、忽略、全项目扫描、MenuBar NRE 回归、布局/虚拟列表数学。
+`test/run-tests.js` 当前 **78** 项：配置、XML、规则、忽略、全项目扫描、MenuBar NRE 回归、布局/虚拟列表数学、滚轮方向。
 
 改 UI 后至少跑 `npm test`。无法在 Node 里测真实 clipRect / 滚轮，发版前需 FairyGUI 实机（见 README「Editor Integration Test」）。
 

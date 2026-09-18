@@ -76,6 +76,11 @@ export function clampScroll(pos: number, contentH: number, viewH: number): numbe
     return clamp(pos, 0, scrollMax(contentH, viewH));
 }
 
+export function wheelToScrollDelta(mouseWheelDelta: number, step?: number): number {
+    const s = step == null ? LAYOUT.SCROLL_STEP : step;
+    return mouseWheelDelta * s;
+}
+
 export function thumbMetrics(viewH: number, contentH: number, pos: number, minThumb?: number): { show: boolean; thumbH: number; thumbY: number } {
     const minT = minThumb == null ? LAYOUT.MIN_THUMB : minThumb;
     if (!(contentH > viewH + 0.5) || viewH <= 0) return { show: false, thumbH: 0, thumbY: 0 };

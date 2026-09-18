@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.3 — 2026-09-18
+
+### 修复
+
+- **滚轮方向反了**：FairyGUI `mouseWheelDelta` 来自 Unity `Event.delta.y`（向下为正），官方 ScrollPane 是 `posY += step * delta`。0.1.2 写成了 `pos -= delta`，已改为 `pos += wheelToScrollDelta(delta)`。滚动条 thumb 与虚拟列表 `visibleStartIndex` 仍由同一 `pos` 驱动。
+- **关闭按钮只有红块没有 ×**：程序化 `GTextField` 使用 `✕`，编辑器默认字体无该字形。改为两条旋转 `GGraph` 细线绘制 ×，不依赖字体；整块可点，带 hover / pressed。
+
+### 测试
+
+- 新增滚轮 delta → scrollOffset / visibleStartIndex 方向测试。合计 78 项。
+
 ## 0.1.2 — 2026-09-18
 
 ### 修复
@@ -10,7 +21,7 @@
 
 ### 测试
 
-- 新增布局/滚动/虚拟列表数学测试（最小窗口、Viewport 高度、366/1000 条结果只渲染可见区、无条时不显示滚动条）。合计 74 项。
+- 新增布局/滚动/虚拟列表数学测试（最小窗口、Viewport 高度、366/1000 条结果只渲染可见区、无条时不显示滚动条）。当时合计 74 项。
 
 ## 0.1.1 — 2026-09-18
 

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.2-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.3-green.svg)](CHANGELOG.md)
 
 FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工记忆的 UI 规范变成可视化检查流程。
 
@@ -11,7 +11,7 @@ FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工�
 - 能安全修复的项目提供一键修复
 - 需要设计师判断的项目只提示，不擅自修改
 
-**版本：** 0.1.2  
+**版本：** 0.1.3  
 **语言：** TypeScript  
 **推荐编辑器：** FairyGUI Editor 2021.3 及以上（API 基于 2021.3.0 公开类型定义）
 
@@ -268,7 +268,7 @@ npm run watch          # 改源码后自动编译
 npm test
 ```
 
-对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层 / 窗口布局与虚拟列表数学做 Node 冒烟测试（当前 74 项，不启动 FairyGUI）。
+对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层 / 窗口布局与虚拟列表数学 / 滚轮方向做 Node 冒烟测试（当前 78 项，不启动 FairyGUI）。
 
 实际编辑器内测试仍需在 FairyGUI 中完成。
 
@@ -285,11 +285,12 @@ npm test
 7. 关闭再启动 FairyGUI：正常
 8. Inspector 面板仍正常显示与刷新
 9. 打开助手窗口：内容不溢出到编辑器、窗外无透明穿透
-10. 规范检查在大量结果（如 300+ 警告）下只在窗口内滚动，滚轮与滚动条可用，窗口高度不随结果条数增长
+10. 规范检查在大量结果（如 300+ 警告）下只在窗口内滚动，滚轮向下编号变大且 thumb 向下、向上则相反，窗口高度不随结果条数增长
 11. 设置页内容可滚动，底部三个按钮始终可见
 12. 拖动窗口右下角缩放后，Tab / 内容区 / 底栏仍对齐，无控件飘出
+13. 右上角关闭按钮可见 ×（非整块红），点击整块区域关闭窗口
 
-> 历史问题：0.1.0 曾因用 3 参 `AddItem` 在根 MenuBar 注册无子菜单的顶级项，导致点击菜单时 `MenuBar.Popup` 抛 NullReferenceException，0.1.1 已修复。0.1.1 窗口曾因未裁剪 Viewport、规范页用 `y += height` 堆叠全部结果，导致透明溢出，0.1.2 已用 clip + 滚动修复。
+> 历史问题：0.1.0 曾因用 3 参 `AddItem` 在根 MenuBar 注册无子菜单的顶级项，导致点击菜单时 `MenuBar.Popup` 抛 NullReferenceException，0.1.1 已修复。0.1.1 窗口曾因未裁剪 Viewport、规范页用 `y += height` 堆叠全部结果，导致透明溢出，0.1.2 已用 clip + 滚动修复。0.1.2 滚轮方向与官方 ScrollPane 相反、关闭按钮因缺字只显示红块，0.1.3 已修。
 
 推送与 PR 会自动运行 GitHub Actions（编译 + 测试），见 `.github/workflows/ci.yml`。
 

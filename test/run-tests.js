@@ -328,6 +328,13 @@ assert(range.start === 0 && range.end > 0 && (range.end - range.start) <= 12, '1
 const rangeMid = Layout.visibleIndexRange(84 * 200, 400, 84, 1000, 2);
 assert(rangeMid.start >= 198 && rangeMid.end <= 210 && (rangeMid.end - rangeMid.start) <= 12, '滚动后仍只渲染可见窗口');
 assert(Layout.visibleIndexRange(0, 400, 84, 366, 2).end <= 12, '366 条警告不会生成无限高度窗口');
+assert(Layout.wheelToScrollDelta(1) > 0, '滚轮向下（delta>0）scrollOffset 增大');
+assert(Layout.wheelToScrollDelta(-1) < 0, '滚轮向上（delta<0）scrollOffset 减小');
+const afterDown = Layout.clampScroll(0 + Layout.wheelToScrollDelta(3), 20000, 400);
+const visDown = Layout.visibleIndexRange(afterDown, 400, 84, 1000, 0);
+assert(visDown.start > 0, '滚轮向下 visibleStartIndex 增大');
+const afterUp = Layout.clampScroll(afterDown + Layout.wheelToScrollDelta(-3), 20000, 400);
+assert(afterUp === 0, '滚轮向上回到更靠前位置');
 
 console.log('== 全项目扫描 ==');
 const { ScanController } = dist('services', 'ScanController.js');

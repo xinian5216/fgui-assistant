@@ -9,6 +9,7 @@ exports.computeDefaultWindow = computeDefaultWindow;
 exports.clamp = clamp;
 exports.scrollMax = scrollMax;
 exports.clampScroll = clampScroll;
+exports.wheelToScrollDelta = wheelToScrollDelta;
 exports.thumbMetrics = thumbMetrics;
 exports.visibleIndexRange = visibleIndexRange;
 exports.measureChildrenBottom = measureChildrenBottom;
@@ -77,6 +78,10 @@ function scrollMax(contentH, viewH) {
 }
 function clampScroll(pos, contentH, viewH) {
     return clamp(pos, 0, scrollMax(contentH, viewH));
+}
+function wheelToScrollDelta(mouseWheelDelta, step) {
+    const s = step == null ? exports.LAYOUT.SCROLL_STEP : step;
+    return mouseWheelDelta * s;
 }
 function thumbMetrics(viewH, contentH, pos, minThumb) {
     const minT = minThumb == null ? exports.LAYOUT.MIN_THUMB : minThumb;
