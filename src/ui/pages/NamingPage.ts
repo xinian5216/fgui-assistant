@@ -1,5 +1,5 @@
 import { FairyGUI, FairyEditor } from 'csharp';
-import { Page } from '../MainPanel';
+import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, createLabel, createInput, toast } from '../UiKit';
 import { getSelection, getExtType, setObjProperty } from '../../services/EditorService';
 import { getNamingType } from '../../rules/NamingRule';
@@ -13,7 +13,9 @@ export class NamingPage implements Page {
     title = "命名助手";
     private input: FairyGUI.GTextInput = null;
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new Column(width, 6);
         const self = this;
         const cfg = Config.config;

@@ -1,5 +1,5 @@
 import { FairyGUI } from 'csharp';
-import { Page } from '../MainPanel';
+import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, UiCheckbox, createLabel, toast } from '../UiKit';
 import { Config } from '../../core/Config';
 import { Store } from '../../core/Store';
@@ -10,7 +10,9 @@ export class ChecklistPage implements Page {
     id = "checklist";
     title = "PS 清单";
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new Column(width, 6);
         const cfg = Config.config;
         const items = cfg.psChecklist || [];

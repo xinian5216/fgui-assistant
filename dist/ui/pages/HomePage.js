@@ -9,12 +9,15 @@ const Config_1 = require("../../core/Config");
 const Store_1 = require("../../core/Store");
 const FixService_1 = require("../../services/FixService");
 const IssueView_1 = require("../IssueView");
+const Layout_1 = require("../Layout");
 class HomePage {
     constructor() {
         this.id = "home";
         this.title = "首页";
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new UiKit_1.Column(width, 6);
         const pkgName = (0, EditorService_1.getCurrentPackageName)();
         const comName = (0, EditorService_1.getCurrentComponentName)();
@@ -38,19 +41,26 @@ class HomePage {
         const infoText = doc
             ? `当前 Package：${pkgName || "-"}\n当前组件：${comName || "-"}`
             : "当前没有打开的组件\n打开组件后可使用检查与快速设置";
-        col.add((0, UiKit_1.createLabel)(infoText, { size: 12, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), doc ? 34 : 34);
+        col.add((0, UiKit_1.createLabel)(infoText, { size: 12, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 34);
         const result = ScanController_1.ScanController.lastResult;
         if (result) {
             const summary = `最近检查（${result.model.componentName}）\n✕ ${result.errorCount} 项错误    ⚠ ${result.warningCount} 项警告    ⓘ ${result.infoCount} 项建议`;
             col.add((0, UiKit_1.createLabel)(summary, { size: 12, color: UiKit_1.COLORS.text, width: width, wrap: true }), 34);
-            const important = result.issues.filter(i => i.severity == "error" || i.severity == "warning").slice(0, 3);
-            if (important.length > 0) {
+            const important = result.issues.filter(i => i.severity == "error" || i.severity == "warning");
+            const rest = result.issues.filter(i => i.severity != "error" && i.severity != "warning");
+            const shown = important.concat(rest).slice(0, Layout_1.LAYOUT.HOME_MAX_ISSUES);
+            if (shown.length > 0) {
                 col.add((0, UiKit_1.createLabel)("最近问题：", { size: 12, color: UiKit_1.COLORS.textDim }), 16);
-                const self = this;
-                for (const issue of important) {
-                    (0, IssueView_1.buildIssueRow)(col, issue, width, { rebuild: () => self.rebuild(content, width) });
+                for (const issue of shown) {
+                    const row = (0, IssueView_1.createIssueItem)(issue, width, { rebuild: () => ScanController_1.ScanController.scanCurrentComponent() });
+                    col.add(row, Layout_1.LAYOUT.ISSUE_ITEM_H);
                 }
             }
+            const btnAll = new UiKit_1.UiButton("查看全部问题 →", {
+                w: width, h: 24, size: 12,
+                onClick: () => { ctx.navigate("check"); }
+            });
+            col.add(btnAll.view, 24);
         }
         else {
             col.add((0, UiKit_1.createLabel)("尚未执行检查", { size: 12, color: UiKit_1.COLORS.textDim }), 16);
@@ -109,9 +119,6 @@ class HomePage {
         }
         col.finish();
         content.AddChild(col.com);
-    }
-    rebuild(content, width) {
-        ScanController_1.ScanController.scanCurrentComponent();
     }
 }
 exports.HomePage = HomePage;

@@ -8,14 +8,20 @@ const IssueView_1 = require("../IssueView");
 const Store_1 = require("../../core/Store");
 const RuleEngine_1 = require("../../core/RuleEngine");
 const FixService_1 = require("../../services/FixService");
+const Layout_1 = require("../Layout");
+const Scroll_1 = require("../Scroll");
 class CheckPage {
     constructor() {
         this.id = "check";
         this.title = "规范检查";
+        this.manageLayout = true;
         this.showIgnored = false;
         this.filterSeverity = "";
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
+        const height = ctx.height;
         const col = new UiKit_1.Column(width, 6);
         const self = this;
         col.row([
@@ -63,7 +69,7 @@ class CheckPage {
             : ScanController_1.ScanController.lastScope == "package" ? `Package「${result.model.packageName}」`
                 : `组件「${result.model.componentName}」`;
         col.add((0, UiKit_1.createLabel)(`检查范围：${scopeName}`, { size: 12, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 18);
-        col.add((0, UiKit_1.createLabel)(`✕ ${result.errorCount} 错误    ⚠ ${result.warningCount} 警告    ⓘ ${result.infoCount} 建议`, { size: 13, color: UiKit_1.COLORS.text, bold: true }), 20);
+        col.add((0, UiKit_1.createLabel)(`✕ ${result.errorCount} 错误    ⚠ ${result.warningCount} 警告    ⓘ ${result.infoCount} 建议`, { size: 13, color: UiKit_1.COLORS.text, bold: true, width: width, wrap: true }), 20);
         const fixable = result.issues.filter(i => i.fixable && i.fixType && i.fixType != "ackProtected");
         if (fixable.length > 0) {
             const btnFixAll = new UiKit_1.UiButton(`一键修复安全项（${fixable.length}）`, {
@@ -96,26 +102,7 @@ class CheckPage {
         col.row(filterRow, 22, 6);
         const cbIgnored = new UiKit_1.UiCheckbox("显示已忽略（本次 + 永久）", this.showIgnored, (v) => { self.showIgnored = v; ScanController_1.ScanController.notify(); }, { w: width });
         col.add(cbIgnored.view, 20);
-        let issues = result.issues;
-        if (this.showIgnored && ScanController_1.ScanController.lastScope == "component" && result.model && result.model.docUrl) {
-            issues = RuleEngine_1.Engine.runOnModel(result.model, true);
-        }
-        if (this.filterSeverity)
-            issues = issues.filter(i => i.severity == this.filterSeverity);
-        if (issues.length == 0) {
-            col.add((0, UiKit_1.createLabel)("✓ 没有符合筛选的问题", { size: 13, color: UiKit_1.COLORS.ok }), 22);
-        }
-        else {
-            const shown = issues.slice(0, 200);
-            for (const issue of shown) {
-                (0, IssueView_1.buildIssueRow)(col, issue, width, { rebuild: () => ScanController_1.ScanController.notify() });
-            }
-            if (issues.length > 200) {
-                col.add((0, UiKit_1.createLabel)(`（仅显示前 200 条，共 ${issues.length} 条）`, { size: 11, color: UiKit_1.COLORS.textDim }), 16);
-            }
-        }
         if (Store_1.Store.permanentIgnoreCount > 0) {
-            col.space(4);
             const btnClearIgnore = new UiKit_1.UiButton(`清除全部永久忽略（${Store_1.Store.permanentIgnoreCount}）`, {
                 w: width, h: 22, size: 11,
                 onClick: () => {
@@ -126,8 +113,28 @@ class CheckPage {
             });
             col.add(btnClearIgnore.view, 22);
         }
+        let issues = result.issues;
+        if (this.showIgnored && ScanController_1.ScanController.lastScope == "component" && result.model && result.model.docUrl) {
+            issues = RuleEngine_1.Engine.runOnModel(result.model, true);
+        }
+        if (this.filterSeverity)
+            issues = issues.filter(i => i.severity == this.filterSeverity);
+        if (issues.length == 0) {
+            col.add((0, UiKit_1.createLabel)("✓ 没有符合筛选的问题", { size: 13, color: UiKit_1.COLORS.ok }), 22);
+            col.finish();
+            content.AddChild(col.com);
+            return;
+        }
         col.finish();
         content.AddChild(col.com);
+        const headerH = col.cursorY;
+        const listH = Math.max(40, height - headerH);
+        const list = new Scroll_1.VirtualList(width, listH, Layout_1.LAYOUT.ISSUE_ITEM_H, (_i, item, issue, itemW) => {
+            (0, IssueView_1.renderIssueItem)(item, issue, itemW, { rebuild: () => ScanController_1.ScanController.notify() });
+        });
+        list.view.SetXY(0, headerH);
+        list.setData(issues);
+        content.AddChild(list.view);
     }
 }
 exports.CheckPage = CheckPage;

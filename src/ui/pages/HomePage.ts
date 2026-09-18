@@ -1,19 +1,21 @@
 import { FairyGUI } from 'csharp';
-import { Page } from '../MainPanel';
-import { Column, COLORS, UiButton, createLabel, createGraph, toast, severityText } from '../UiKit';
+import { Page, PageContext } from '../MainPanel';
+import { Column, COLORS, UiButton, createLabel, createGraph, toast } from '../UiKit';
 import { ScanController } from '../../services/ScanController';
 import { getCurrentPackageName, getCurrentComponentName, getActiveDoc } from '../../services/EditorService';
 import { Config } from '../../core/Config';
 import { Store } from '../../core/Store';
 import { applySafeFixes } from '../../services/FixService';
-import { buildIssueRow } from '../IssueView';
-import { Issue } from '../../core/Types';
+import { createIssueItem } from '../IssueView';
+import { LAYOUT } from '../Layout';
 
 export class HomePage implements Page {
     id = "home";
     title = "首页";
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new Column(width, 6);
         const pkgName = getCurrentPackageName();
         const comName = getCurrentComponentName();
@@ -40,20 +42,27 @@ export class HomePage implements Page {
         const infoText = doc
             ? `当前 Package：${pkgName || "-"}\n当前组件：${comName || "-"}`
             : "当前没有打开的组件\n打开组件后可使用检查与快速设置";
-        col.add(createLabel(infoText, { size: 12, color: COLORS.textDim, width: width, wrap: true }), doc ? 34 : 34);
+        col.add(createLabel(infoText, { size: 12, color: COLORS.textDim, width: width, wrap: true }), 34);
 
         const result = ScanController.lastResult;
         if (result) {
             const summary = `最近检查（${result.model.componentName}）\n✕ ${result.errorCount} 项错误    ⚠ ${result.warningCount} 项警告    ⓘ ${result.infoCount} 项建议`;
             col.add(createLabel(summary, { size: 12, color: COLORS.text, width: width, wrap: true }), 34);
-            const important = result.issues.filter(i => i.severity == "error" || i.severity == "warning").slice(0, 3);
-            if (important.length > 0) {
+            const important = result.issues.filter(i => i.severity == "error" || i.severity == "warning");
+            const rest = result.issues.filter(i => i.severity != "error" && i.severity != "warning");
+            const shown = important.concat(rest).slice(0, LAYOUT.HOME_MAX_ISSUES);
+            if (shown.length > 0) {
                 col.add(createLabel("最近问题：", { size: 12, color: COLORS.textDim }), 16);
-                const self = this;
-                for (const issue of important) {
-                    buildIssueRow(col, issue, width, { rebuild: () => self.rebuild(content, width) });
+                for (const issue of shown) {
+                    const row = createIssueItem(issue, width, { rebuild: () => ScanController.scanCurrentComponent() });
+                    col.add(row, LAYOUT.ISSUE_ITEM_H);
                 }
             }
+            const btnAll = new UiButton("查看全部问题 →", {
+                w: width, h: 24, size: 12,
+                onClick: () => { ctx.navigate("check"); }
+            });
+            col.add(btnAll.view, 24);
         } else {
             col.add(createLabel("尚未执行检查", { size: 12, color: COLORS.textDim }), 16);
         }
@@ -108,9 +117,5 @@ export class HomePage implements Page {
 
         col.finish();
         content.AddChild(col.com);
-    }
-
-    private rebuild(content: FairyGUI.GComponent, width: number): void {
-        ScanController.scanCurrentComponent();
     }
 }

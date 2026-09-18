@@ -1,16 +1,20 @@
 import { FairyGUI } from 'csharp';
-import { Page } from '../MainPanel';
-import { Column, COLORS, UiButton, createLabel, createHLine, toast } from '../UiKit';
+import { Page, PageContext } from '../MainPanel';
+import { Column, COLORS, UiButton, createLabel, toast } from '../UiKit';
 import { Config, DEFAULT_CONFIG } from '../../core/Config';
 import { App, confirm } from '../../Api';
 import { ScanController } from '../../services/ScanController';
 import { refreshFontCache } from '../../services/FontService';
+import { LAYOUT } from '../Layout';
 
 export class SettingsPage implements Page {
     id = "settings";
     title = "设置";
+    footerHeight = LAYOUT.FOOTER_H;
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new Column(width, 6);
         const cfg = Config.config;
         const self = this;
@@ -21,7 +25,7 @@ export class SettingsPage implements Page {
 
         col.add(createLabel("按钮标准缩放", { size: 13, bold: true, color: COLORS.text }), 18);
         col.row([
-            { obj: createLabel(`当前：${cfg.buttonScale}`, { size: 12, color: COLORS.textDim }), w: width - 96 },
+            { obj: createLabel(`当前：${cfg.buttonScale}`, { size: 12, color: COLORS.textDim, width: Math.max(40, width - 96), wrap: false }), w: width - 96 },
             {
                 obj: new UiButton("修改", {
                     w: 90, h: 22, size: 11,
@@ -47,7 +51,7 @@ export class SettingsPage implements Page {
         const rules = cfg.namingRules || {};
         for (const k of Object.keys(rules)) {
             col.row([
-                { obj: createLabel(`${k}  →  ${rules[k]}`, { size: 12, color: COLORS.textDim }), w: width - 150 },
+                { obj: createLabel(`${k}  →  ${rules[k]}`, { size: 12, color: COLORS.textDim, width: Math.max(40, width - 150), wrap: false }), w: width - 150 },
                 {
                     obj: new UiButton("修改", {
                         w: 66, h: 20, size: 11,
@@ -89,7 +93,7 @@ export class SettingsPage implements Page {
 
         col.add(createLabel("红点", { size: 13, bold: true, color: COLORS.text }), 18);
         col.row([
-            { obj: createLabel(`控制器名匹配：${cfg.redDot.controllerNamePattern}`, { size: 12, color: COLORS.textDim }), w: width - 96 },
+            { obj: createLabel(`控制器名匹配：${cfg.redDot.controllerNamePattern}`, { size: 12, color: COLORS.textDim, width: Math.max(40, width - 96), wrap: false }), w: width - 96 },
             {
                 obj: new UiButton("修改", {
                     w: 90, h: 20, size: 11,
@@ -104,47 +108,49 @@ export class SettingsPage implements Page {
             }
         ], 22);
 
-        col.add(createHLine(width - 4), 1);
-        col.row([
-            {
-                obj: new UiButton("重新加载配置", {
-                    w: (width - 12) / 3, h: 24, size: 11,
-                    onClick: () => {
-                        Config.load();
-                        refreshFontCache();
-                        ScanController.notify();
-                        toast("已重新加载");
-                    }
-                }).view, w: (width - 12) / 3
-            },
-            {
-                obj: new UiButton("恢复默认", {
-                    w: (width - 12) / 3, h: 24, size: 11,
-                    onClick: () => {
-                        confirm("恢复默认配置？（当前配置将被覆盖）", (r) => {
-                            if (r != "yes") return;
-                            Config.update(c => {
-                                const d = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
-                                for (const k of Object.keys(d)) (c as any)[k] = d[k];
-                            });
-                            ScanController.notify();
-                            toast("已恢复默认");
-                        });
-                    }
-                }).view, w: (width - 12) / 3
-            },
-            {
-                obj: new UiButton("保存配置", {
-                    w: (width - 12) / 3, h: 24, size: 11, bg: COLORS.accent, hover: COLORS.accentHover, color: "#fff",
-                    onClick: () => {
-                        toast(Config.save() ? "已保存" : "保存失败");
-                    }
-                }).view, w: (width - 12) / 3
-            }
-        ], 24, 6);
-
         col.finish();
         content.AddChild(col.com);
+    }
+
+    buildFooter(ctx: PageContext): void {
+        const width = ctx.width;
+        const content = ctx.content;
+        const bw = (width - 12) / 3;
+        const b1 = new UiButton("重新加载配置", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                Config.load();
+                refreshFontCache();
+                ScanController.notify();
+                toast("已重新加载");
+            }
+        });
+        const b2 = new UiButton("恢复默认", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                confirm("恢复默认配置？（当前配置将被覆盖）", (r) => {
+                    if (r != "yes") return;
+                    Config.update(c => {
+                        const d = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+                        for (const k of Object.keys(d)) (c as any)[k] = d[k];
+                    });
+                    ScanController.notify();
+                    toast("已恢复默认");
+                });
+            }
+        });
+        const b3 = new UiButton("保存配置", {
+            w: bw, h: 24, size: 11, bg: COLORS.accent, hover: COLORS.accentHover, color: "#fff",
+            onClick: () => {
+                toast(Config.save() ? "已保存" : "保存失败");
+            }
+        });
+        b1.view.SetXY(0, 0);
+        b2.view.SetXY(bw + 6, 0);
+        b3.view.SetXY((bw + 6) * 2, 0);
+        content.AddChild(b1.view);
+        content.AddChild(b2.view);
+        content.AddChild(b3.view);
     }
 
     private buildStringList(col: Column, width: number, title: string, items: string[], inputHint: string, apply: (arr: string[]) => void): void {
@@ -152,7 +158,7 @@ export class SettingsPage implements Page {
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             col.row([
-                { obj: createLabel(item, { size: 12, color: COLORS.textDim }), w: width - 78 },
+                { obj: createLabel(item, { size: 12, color: COLORS.textDim, width: Math.max(40, width - 78), wrap: false }), w: width - 78 },
                 {
                     obj: new UiButton("删除", {
                         w: 66, h: 20, size: 11,

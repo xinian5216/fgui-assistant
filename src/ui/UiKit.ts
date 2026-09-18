@@ -22,13 +22,19 @@ function color(hex: string): any {
     try { return FairyEditor.ColorUtil.FromHexString(hex); } catch (e) { return null; }
 }
 
+export function fillGraph(g: FairyGUI.GGraph, w: number, h: number, fillHex: string, lineHex?: string): void {
+    const cw = Math.max(1, w);
+    const ch = Math.max(1, h);
+    try {
+        if (lineHex) g.DrawRect(cw, ch, 1, color(lineHex), color(fillHex));
+        else g.DrawRect(cw, ch, 0, color(fillHex), color(fillHex));
+    } catch (e) { }
+    try { g.SetSize(cw, ch); } catch (e) { }
+}
+
 export function createGraph(w: number, h: number, fillHex: string, lineHex?: string): FairyGUI.GGraph {
     const g = new FairyGUI.GGraph();
-    try {
-        if (lineHex) g.DrawRect(w, h, 1, color(lineHex), color(fillHex));
-        else g.DrawRect(w, h, 0, color(fillHex), color(fillHex));
-    } catch (e) { }
-    g.SetSize(w, h);
+    fillGraph(g, w, h, fillHex, lineHex);
     return g;
 }
 
@@ -49,9 +55,14 @@ export function createLabel(text: string, opts?: LabelOpts): FairyGUI.GTextField
         if (opts.bold) tf.bold = true;
         t.textFormat = tf;
         if (opts.color) t.color = color(opts.color);
-        if (opts.wrap && opts.width) {
-            t.autoSize = FairyGUI.AutoSizeType.Height;
-            t.SetSize(opts.width, 10);
+        if (opts.width) {
+            if (opts.wrap) {
+                t.autoSize = FairyGUI.AutoSizeType.Height;
+                t.SetSize(opts.width, 10);
+            } else {
+                t.autoSize = FairyGUI.AutoSizeType.None;
+                t.SetSize(opts.width, Math.max(14, (opts.size || 12) + 4));
+            }
         }
         t.text = text || "";
     } catch (e) { }
@@ -255,48 +266,6 @@ export class Column {
     finish(): void {
         this.com.SetSize(this.width, Math.max(1, this._y));
     }
-}
-
-export interface ScrollView {
-    view: FairyGUI.GComponent;
-    content: FairyGUI.GComponent;
-    refresh: () => void;
-}
-
-export function createScrollView(w: number, h: number): ScrollView {
-    const view = new FairyGUI.GComponent();
-    view.SetSize(w, h);
-    const content = new FairyGUI.GComponent();
-    content.SetSize(w, h);
-    view.AddChild(content);
-    let scrollOk = false;
-    try {
-        const anyView: any = view;
-        try { anyView.overflow = "scroll"; } catch (e) { }
-        let sp = null;
-        try { sp = view.scrollPane; } catch (e) { }
-        if (!sp) {
-            try { anyView.overflow = 2; } catch (e) { }
-            try { sp = view.scrollPane; } catch (e) { }
-        }
-        if (sp) {
-            try { sp.touchEffect = true; } catch (e) { }
-            try { sp.mouseWheelEnabled = true; } catch (e) { }
-            try { sp.inertiaDisabled = false; } catch (e) { }
-            view.viewWidth = w;
-            view.viewHeight = h;
-            scrollOk = true;
-        }
-    } catch (e) { }
-    const refresh = () => {
-        try {
-            if (scrollOk) {
-                view.viewWidth = w;
-                view.viewHeight = h;
-            }
-        } catch (e) { }
-    };
-    return { view: view, content: content, refresh: refresh };
 }
 
 export function clearChildren(com: FairyGUI.GComponent): void {

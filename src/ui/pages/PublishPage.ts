@@ -1,19 +1,23 @@
 import { FairyGUI } from 'csharp';
-import { Page } from '../MainPanel';
-import { Column, COLORS, UiButton, UiCheckbox, createLabel, createHLine, toast } from '../UiKit';
+import { Page, PageContext } from '../MainPanel';
+import { Column, COLORS, UiButton, UiCheckbox, createLabel, toast } from '../UiKit';
 import { Config } from '../../core/Config';
 import { Store } from '../../core/Store';
 import { App, nowStr, alert } from '../../Api';
 import { getCurrentPackageName } from '../../services/EditorService';
 import { getPackageByName } from '../../services/ScanService';
+import { LAYOUT } from '../Layout';
 
 const AUTO_STEP_INDEX = 3;
 
 export class PublishPage implements Page {
     id = "publish";
     title = "发布流程";
+    footerHeight = LAYOUT.FOOTER_H;
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new Column(width, 6);
         const cfg = Config.config;
         const steps = cfg.publishChecklist || [];
@@ -84,33 +88,34 @@ export class PublishPage implements Page {
             col.add(box, y);
         }
 
-        col.space(2);
-        const line = createHLine(width - 4);
-        col.add(line, 1);
-        col.row([
-            {
-                obj: new UiButton("重置流程", {
-                    w: (width - 6) / 2, h: 24, size: 11,
-                    onClick: () => {
-                        Store.resetPublishSteps();
-                        ScanNotify();
-                        toast("已重置");
-                    }
-                }).view, w: (width - 6) / 2
-            },
-            {
-                obj: new UiButton("全部标记完成", {
-                    w: (width - 6) / 2, h: 24, size: 11,
-                    onClick: () => {
-                        for (let i = 0; i < steps.length; i++) Store.setPublishStep(i, true, steps.length);
-                        ScanNotify();
-                    }
-                }).view, w: (width - 6) / 2
-            }
-        ], 24, 6);
-
         col.finish();
         content.AddChild(col.com);
+    }
+
+    buildFooter(ctx: PageContext): void {
+        const width = ctx.width;
+        const content = ctx.content;
+        const bw = (width - 6) / 2;
+        const b1 = new UiButton("重置流程", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                Store.resetPublishSteps();
+                ScanNotify();
+                toast("已重置");
+            }
+        });
+        const b2 = new UiButton("全部标记完成", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                const steps = (Config.config.publishChecklist || []).length;
+                for (let i = 0; i < steps; i++) Store.setPublishStep(i, true, steps);
+                ScanNotify();
+            }
+        });
+        b1.view.SetXY(0, 0);
+        b2.view.SetXY(bw + 6, 0);
+        content.AddChild(b1.view);
+        content.AddChild(b2.view);
     }
 
     private showPublishSettings(): void {

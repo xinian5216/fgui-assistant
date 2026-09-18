@@ -5,13 +5,25 @@ const csharp_1 = require("csharp");
 const Api_1 = require("../Api");
 const UiKit_1 = require("./UiKit");
 const MainPanel_1 = require("./MainPanel");
-const WIN_W = 460;
-const WIN_H = 560;
-const TITLE_H = 28;
+const Layout_1 = require("./Layout");
+const Scroll_1 = require("./Scroll");
+const TAB_COUNT = 9;
 class FloatingWindow {
     constructor() {
         this.win = null;
         this.panel = null;
+        this.bg = null;
+        this.titleBar = null;
+        this.titleBg = null;
+        this.btnClose = null;
+        this.grip = null;
+        this._w = 0;
+        this._h = 0;
+        this._resizing = false;
+        this._startW = 0;
+        this._startH = 0;
+        this._startX = 0;
+        this._startY = 0;
     }
     get isShowing() {
         return this.win != null && !this.win.isDisposed && this.win.onStage;
@@ -32,61 +44,142 @@ class FloatingWindow {
         }
         try {
             const root = Api_1.App.groot;
+            const def = (0, Layout_1.computeDefaultWindow)(TAB_COUNT);
+            const min = (0, Layout_1.computeMinWindow)(TAB_COUNT);
+            this._w = def.width;
+            this._h = def.height;
             this.win = new csharp_1.FairyGUI.GComponent();
-            this.win.SetSize(WIN_W, WIN_H);
+            this.win.SetSize(this._w, this._h);
             try {
                 this.win.opaque = true;
             }
             catch (e) { }
-            const bg = (0, UiKit_1.createGraph)(WIN_W, WIN_H, UiKit_1.COLORS.bg, UiKit_1.COLORS.border);
-            this.win.AddChild(bg);
-            const titleBar = new csharp_1.FairyGUI.GComponent();
-            titleBar.SetSize(WIN_W, TITLE_H);
             try {
-                titleBar.opaque = true;
+                this.win.minWidth = min.width;
+                this.win.minHeight = min.height;
             }
             catch (e) { }
-            const tbBg = (0, UiKit_1.createGraph)(WIN_W, TITLE_H, UiKit_1.COLORS.bgPanel);
-            titleBar.AddChild(tbBg);
+            (0, Scroll_1.applyClip)(this.win, this._w, this._h);
+            this.bg = (0, UiKit_1.createGraph)(this._w, this._h, UiKit_1.COLORS.bg, UiKit_1.COLORS.border);
+            this.win.AddChild(this.bg);
+            this.titleBar = new csharp_1.FairyGUI.GComponent();
+            this.titleBar.SetSize(this._w, Layout_1.LAYOUT.HEADER_H);
+            try {
+                this.titleBar.opaque = true;
+            }
+            catch (e) { }
+            this.titleBg = (0, UiKit_1.createGraph)(this._w, Layout_1.LAYOUT.HEADER_H, UiKit_1.COLORS.bgPanel);
+            this.titleBar.AddChild(this.titleBg);
             const title = (0, UiKit_1.createLabel)("FGUI Assistant", { size: 13, bold: true, color: UiKit_1.COLORS.text });
             title.SetXY(10, 6);
-            titleBar.AddChild(title);
+            this.titleBar.AddChild(title);
             const self = this;
-            titleBar.onTouchBegin.Add(() => {
+            this.titleBar.onTouchBegin.Add(() => {
+                if (self._resizing)
+                    return;
                 try {
                     self.win.StartDrag();
                 }
                 catch (e) { }
             });
-            this.win.AddChild(titleBar);
-            const btnClose = new csharp_1.FairyGUI.GComponent();
-            btnClose.SetSize(26, 22);
+            this.win.AddChild(this.titleBar);
+            this.btnClose = new csharp_1.FairyGUI.GComponent();
+            this.btnClose.SetSize(Layout_1.LAYOUT.CLOSE_W, 22);
             try {
-                btnClose.opaque = true;
+                this.btnClose.opaque = true;
             }
             catch (e) { }
-            const cbBg = (0, UiKit_1.createGraph)(26, 22, "#7a3a3a");
-            btnClose.AddChild(cbBg);
+            const cbBg = (0, UiKit_1.createGraph)(Layout_1.LAYOUT.CLOSE_W, 22, "#7a3a3a");
+            this.btnClose.AddChild(cbBg);
             const cbLb = (0, UiKit_1.createLabel)("✕", { size: 12, color: "#ffffff", bold: true });
             try {
                 cbLb.autoSize = csharp_1.FairyGUI.AutoSizeType.None;
-                cbLb.SetSize(26, 16);
+                cbLb.SetSize(Layout_1.LAYOUT.CLOSE_W, 16);
                 cbLb.align = csharp_1.FairyGUI.AlignType.Center;
             }
             catch (e) { }
             cbLb.SetXY(0, 3);
-            btnClose.AddChild(cbLb);
-            btnClose.SetXY(WIN_W - 30, 3);
-            btnClose.onClick.Add(() => { self.close(); });
-            this.win.AddChild(btnClose);
-            this.panel = new MainPanel_1.MainPanel(WIN_W - 4, WIN_H - TITLE_H - 6);
-            this.panel.view.SetXY(2, TITLE_H + 2);
+            this.btnClose.AddChild(cbLb);
+            this.btnClose.SetXY(this._w - 30, 3);
+            this.btnClose.onClick.Add(() => { self.close(); });
+            this.win.AddChild(this.btnClose);
+            const panelW = this._w;
+            const panelH = this._h - Layout_1.LAYOUT.HEADER_H;
+            this.panel = new MainPanel_1.MainPanel(panelW, panelH);
+            this.panel.view.SetXY(0, Layout_1.LAYOUT.HEADER_H);
             this.win.AddChild(this.panel.view);
-            this.win.SetXY(Math.max(0, (root.width - WIN_W) / 2), Math.max(0, (root.height - WIN_H) / 3));
+            this.grip = new csharp_1.FairyGUI.GComponent();
+            this.grip.SetSize(Layout_1.LAYOUT.GRIP, Layout_1.LAYOUT.GRIP);
+            try {
+                this.grip.opaque = true;
+            }
+            catch (e) { }
+            const gripBg = (0, UiKit_1.createGraph)(Layout_1.LAYOUT.GRIP, Layout_1.LAYOUT.GRIP, UiKit_1.COLORS.border);
+            this.grip.AddChild(gripBg);
+            this.grip.SetXY(this._w - Layout_1.LAYOUT.GRIP, this._h - Layout_1.LAYOUT.GRIP);
+            this.grip.onTouchBegin.Add((ctx) => {
+                try {
+                    ctx.CaptureTouch();
+                }
+                catch (e) { }
+                self._resizing = true;
+                self._startW = self._w;
+                self._startH = self._h;
+                try {
+                    self._startX = ctx.inputEvent.x;
+                    self._startY = ctx.inputEvent.y;
+                }
+                catch (e) { }
+            });
+            this.grip.onTouchMove.Add((ctx) => {
+                if (!self._resizing)
+                    return;
+                let x = self._startX, y = self._startY;
+                try {
+                    x = ctx.inputEvent.x;
+                    y = ctx.inputEvent.y;
+                }
+                catch (e) { }
+                let maxW = 1600, maxH = 1200;
+                try {
+                    maxW = root.width;
+                    maxH = root.height;
+                }
+                catch (e) { }
+                const nw = (0, Layout_1.clamp)(self._startW + (x - self._startX), min.width, maxW);
+                const nh = (0, Layout_1.clamp)(self._startH + (y - self._startY), min.height, maxH);
+                self.applySize(nw, nh);
+            });
+            this.grip.onTouchEnd.Add(() => { self._resizing = false; });
+            this.win.AddChild(this.grip);
+            this.win.SetXY(Math.max(0, (root.width - this._w) / 2), Math.max(0, (root.height - this._h) / 3));
             root.AddChild(this.win);
         }
         catch (e) {
             console.warn("[FGUI助手] 打开窗口失败: " + e);
+        }
+    }
+    applySize(w, h) {
+        this._w = w;
+        this._h = h;
+        if (!this.win)
+            return;
+        this.win.SetSize(w, h);
+        (0, Scroll_1.applyClip)(this.win, w, h);
+        if (this.bg)
+            (0, UiKit_1.fillGraph)(this.bg, w, h, UiKit_1.COLORS.bg, UiKit_1.COLORS.border);
+        if (this.titleBar) {
+            this.titleBar.SetSize(w, Layout_1.LAYOUT.HEADER_H);
+            if (this.titleBg)
+                (0, UiKit_1.fillGraph)(this.titleBg, w, Layout_1.LAYOUT.HEADER_H, UiKit_1.COLORS.bgPanel);
+        }
+        if (this.btnClose)
+            this.btnClose.SetXY(w - 30, 3);
+        if (this.grip)
+            this.grip.SetXY(w - Layout_1.LAYOUT.GRIP, h - Layout_1.LAYOUT.GRIP);
+        if (this.panel) {
+            this.panel.view.SetXY(0, Layout_1.LAYOUT.HEADER_H);
+            this.panel.resize(w, h - Layout_1.LAYOUT.HEADER_H);
         }
     }
     close() {
@@ -99,6 +192,11 @@ class FloatingWindow {
         catch (e) { }
         this.win = null;
         this.panel = null;
+        this.bg = null;
+        this.titleBar = null;
+        this.titleBg = null;
+        this.btnClose = null;
+        this.grip = null;
     }
     refresh() {
         if (this.panel)

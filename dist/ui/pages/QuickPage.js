@@ -22,7 +22,9 @@ class QuickPage {
         this.id = "quick";
         this.title = "快速设置";
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new UiKit_1.Column(width, 6);
         const self = this;
         const selection = (0, EditorService_1.getSelection)();

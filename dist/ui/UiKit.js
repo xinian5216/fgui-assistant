@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Column = exports.UiCheckbox = exports.UiButton = exports.COLORS = void 0;
+exports.fillGraph = fillGraph;
 exports.createGraph = createGraph;
 exports.createLabel = createLabel;
 exports.setLabelStyle = setLabelStyle;
 exports.createInput = createInput;
 exports.createTag = createTag;
 exports.createHLine = createHLine;
-exports.createScrollView = createScrollView;
 exports.clearChildren = clearChildren;
 exports.toast = toast;
 exports.severityColor = severityColor;
@@ -38,16 +38,24 @@ function color(hex) {
         return null;
     }
 }
-function createGraph(w, h, fillHex, lineHex) {
-    const g = new csharp_1.FairyGUI.GGraph();
+function fillGraph(g, w, h, fillHex, lineHex) {
+    const cw = Math.max(1, w);
+    const ch = Math.max(1, h);
     try {
         if (lineHex)
-            g.DrawRect(w, h, 1, color(lineHex), color(fillHex));
+            g.DrawRect(cw, ch, 1, color(lineHex), color(fillHex));
         else
-            g.DrawRect(w, h, 0, color(fillHex), color(fillHex));
+            g.DrawRect(cw, ch, 0, color(fillHex), color(fillHex));
     }
     catch (e) { }
-    g.SetSize(w, h);
+    try {
+        g.SetSize(cw, ch);
+    }
+    catch (e) { }
+}
+function createGraph(w, h, fillHex, lineHex) {
+    const g = new csharp_1.FairyGUI.GGraph();
+    fillGraph(g, w, h, fillHex, lineHex);
     return g;
 }
 function createLabel(text, opts) {
@@ -61,9 +69,15 @@ function createLabel(text, opts) {
         t.textFormat = tf;
         if (opts.color)
             t.color = color(opts.color);
-        if (opts.wrap && opts.width) {
-            t.autoSize = csharp_1.FairyGUI.AutoSizeType.Height;
-            t.SetSize(opts.width, 10);
+        if (opts.width) {
+            if (opts.wrap) {
+                t.autoSize = csharp_1.FairyGUI.AutoSizeType.Height;
+                t.SetSize(opts.width, 10);
+            }
+            else {
+                t.autoSize = csharp_1.FairyGUI.AutoSizeType.None;
+                t.SetSize(opts.width, Math.max(14, (opts.size || 12) + 4));
+            }
         }
         t.text = text || "";
     }
@@ -273,64 +287,6 @@ class Column {
     }
 }
 exports.Column = Column;
-function createScrollView(w, h) {
-    const view = new csharp_1.FairyGUI.GComponent();
-    view.SetSize(w, h);
-    const content = new csharp_1.FairyGUI.GComponent();
-    content.SetSize(w, h);
-    view.AddChild(content);
-    let scrollOk = false;
-    try {
-        const anyView = view;
-        try {
-            anyView.overflow = "scroll";
-        }
-        catch (e) { }
-        let sp = null;
-        try {
-            sp = view.scrollPane;
-        }
-        catch (e) { }
-        if (!sp) {
-            try {
-                anyView.overflow = 2;
-            }
-            catch (e) { }
-            try {
-                sp = view.scrollPane;
-            }
-            catch (e) { }
-        }
-        if (sp) {
-            try {
-                sp.touchEffect = true;
-            }
-            catch (e) { }
-            try {
-                sp.mouseWheelEnabled = true;
-            }
-            catch (e) { }
-            try {
-                sp.inertiaDisabled = false;
-            }
-            catch (e) { }
-            view.viewWidth = w;
-            view.viewHeight = h;
-            scrollOk = true;
-        }
-    }
-    catch (e) { }
-    const refresh = () => {
-        try {
-            if (scrollOk) {
-                view.viewWidth = w;
-                view.viewHeight = h;
-            }
-        }
-        catch (e) { }
-    };
-    return { view: view, content: content, refresh: refresh };
-}
 function clearChildren(com) {
     try {
         const n = com.numChildren;

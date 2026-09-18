@@ -14,7 +14,9 @@ class NamingPage {
         this.title = "命名助手";
         this.input = null;
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new UiKit_1.Column(width, 6);
         const self = this;
         const cfg = Config_1.Config.config;

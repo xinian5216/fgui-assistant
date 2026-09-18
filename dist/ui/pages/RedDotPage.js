@@ -10,7 +10,9 @@ class RedDotPage {
         this.id = "reddot";
         this.title = "红点工具";
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new UiKit_1.Column(width, 6);
         const cfg = Config_1.Config.config.redDot || { controllerNamePattern: "HongDian", pageOff: "0", pageOn: "1" };
         const doc = (0, EditorService_1.getActiveDoc)();

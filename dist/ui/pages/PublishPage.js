@@ -8,13 +8,17 @@ const Store_1 = require("../../core/Store");
 const Api_1 = require("../../Api");
 const EditorService_1 = require("../../services/EditorService");
 const ScanService_1 = require("../../services/ScanService");
+const Layout_1 = require("../Layout");
 const AUTO_STEP_INDEX = 3;
 class PublishPage {
     constructor() {
         this.id = "publish";
         this.title = "发布流程";
+        this.footerHeight = Layout_1.LAYOUT.FOOTER_H;
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new UiKit_1.Column(width, 6);
         const cfg = Config_1.Config.config;
         const steps = cfg.publishChecklist || [];
@@ -81,33 +85,34 @@ class PublishPage {
             box.SetSize(width, y);
             col.add(box, y);
         }
-        col.space(2);
-        const line = (0, UiKit_1.createHLine)(width - 4);
-        col.add(line, 1);
-        col.row([
-            {
-                obj: new UiKit_1.UiButton("重置流程", {
-                    w: (width - 6) / 2, h: 24, size: 11,
-                    onClick: () => {
-                        Store_1.Store.resetPublishSteps();
-                        ScanNotify();
-                        (0, UiKit_1.toast)("已重置");
-                    }
-                }).view, w: (width - 6) / 2
-            },
-            {
-                obj: new UiKit_1.UiButton("全部标记完成", {
-                    w: (width - 6) / 2, h: 24, size: 11,
-                    onClick: () => {
-                        for (let i = 0; i < steps.length; i++)
-                            Store_1.Store.setPublishStep(i, true, steps.length);
-                        ScanNotify();
-                    }
-                }).view, w: (width - 6) / 2
-            }
-        ], 24, 6);
         col.finish();
         content.AddChild(col.com);
+    }
+    buildFooter(ctx) {
+        const width = ctx.width;
+        const content = ctx.content;
+        const bw = (width - 6) / 2;
+        const b1 = new UiKit_1.UiButton("重置流程", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                Store_1.Store.resetPublishSteps();
+                ScanNotify();
+                (0, UiKit_1.toast)("已重置");
+            }
+        });
+        const b2 = new UiKit_1.UiButton("全部标记完成", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                const steps = (Config_1.Config.config.publishChecklist || []).length;
+                for (let i = 0; i < steps; i++)
+                    Store_1.Store.setPublishStep(i, true, steps);
+                ScanNotify();
+            }
+        });
+        b1.view.SetXY(0, 0);
+        b2.view.SetXY(bw + 6, 0);
+        content.AddChild(b1.view);
+        content.AddChild(b2.view);
     }
     showPublishSettings() {
         const pkgName = (0, EditorService_1.getCurrentPackageName)();

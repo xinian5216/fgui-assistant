@@ -6,12 +6,16 @@ const Config_1 = require("../../core/Config");
 const Api_1 = require("../../Api");
 const ScanController_1 = require("../../services/ScanController");
 const FontService_1 = require("../../services/FontService");
+const Layout_1 = require("../Layout");
 class SettingsPage {
     constructor() {
         this.id = "settings";
         this.title = "设置";
+        this.footerHeight = Layout_1.LAYOUT.FOOTER_H;
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new UiKit_1.Column(width, 6);
         const cfg = Config_1.Config.config;
         const self = this;
@@ -20,7 +24,7 @@ class SettingsPage {
         col.add((0, UiKit_1.createLabel)(`配置文件：${dir}/config.json\n（可直接编辑该文件后点击「重新加载」）`, { size: 10, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 30);
         col.add((0, UiKit_1.createLabel)("按钮标准缩放", { size: 13, bold: true, color: UiKit_1.COLORS.text }), 18);
         col.row([
-            { obj: (0, UiKit_1.createLabel)(`当前：${cfg.buttonScale}`, { size: 12, color: UiKit_1.COLORS.textDim }), w: width - 96 },
+            { obj: (0, UiKit_1.createLabel)(`当前：${cfg.buttonScale}`, { size: 12, color: UiKit_1.COLORS.textDim, width: Math.max(40, width - 96), wrap: false }), w: width - 96 },
             {
                 obj: new UiKit_1.UiButton("修改", {
                     w: 90, h: 22, size: 11,
@@ -44,7 +48,7 @@ class SettingsPage {
         const rules = cfg.namingRules || {};
         for (const k of Object.keys(rules)) {
             col.row([
-                { obj: (0, UiKit_1.createLabel)(`${k}  →  ${rules[k]}`, { size: 12, color: UiKit_1.COLORS.textDim }), w: width - 150 },
+                { obj: (0, UiKit_1.createLabel)(`${k}  →  ${rules[k]}`, { size: 12, color: UiKit_1.COLORS.textDim, width: Math.max(40, width - 150), wrap: false }), w: width - 150 },
                 {
                     obj: new UiKit_1.UiButton("修改", {
                         w: 66, h: 20, size: 11,
@@ -87,7 +91,7 @@ class SettingsPage {
         col.add(btnAddRule.view, 22);
         col.add((0, UiKit_1.createLabel)("红点", { size: 13, bold: true, color: UiKit_1.COLORS.text }), 18);
         col.row([
-            { obj: (0, UiKit_1.createLabel)(`控制器名匹配：${cfg.redDot.controllerNamePattern}`, { size: 12, color: UiKit_1.COLORS.textDim }), w: width - 96 },
+            { obj: (0, UiKit_1.createLabel)(`控制器名匹配：${cfg.redDot.controllerNamePattern}`, { size: 12, color: UiKit_1.COLORS.textDim, width: Math.max(40, width - 96), wrap: false }), w: width - 96 },
             {
                 obj: new UiKit_1.UiButton("修改", {
                     w: 90, h: 20, size: 11,
@@ -102,55 +106,57 @@ class SettingsPage {
                 }).view, w: 90
             }
         ], 22);
-        col.add((0, UiKit_1.createHLine)(width - 4), 1);
-        col.row([
-            {
-                obj: new UiKit_1.UiButton("重新加载配置", {
-                    w: (width - 12) / 3, h: 24, size: 11,
-                    onClick: () => {
-                        Config_1.Config.load();
-                        (0, FontService_1.refreshFontCache)();
-                        ScanController_1.ScanController.notify();
-                        (0, UiKit_1.toast)("已重新加载");
-                    }
-                }).view, w: (width - 12) / 3
-            },
-            {
-                obj: new UiKit_1.UiButton("恢复默认", {
-                    w: (width - 12) / 3, h: 24, size: 11,
-                    onClick: () => {
-                        (0, Api_1.confirm)("恢复默认配置？（当前配置将被覆盖）", (r) => {
-                            if (r != "yes")
-                                return;
-                            Config_1.Config.update(c => {
-                                const d = JSON.parse(JSON.stringify(Config_1.DEFAULT_CONFIG));
-                                for (const k of Object.keys(d))
-                                    c[k] = d[k];
-                            });
-                            ScanController_1.ScanController.notify();
-                            (0, UiKit_1.toast)("已恢复默认");
-                        });
-                    }
-                }).view, w: (width - 12) / 3
-            },
-            {
-                obj: new UiKit_1.UiButton("保存配置", {
-                    w: (width - 12) / 3, h: 24, size: 11, bg: UiKit_1.COLORS.accent, hover: UiKit_1.COLORS.accentHover, color: "#fff",
-                    onClick: () => {
-                        (0, UiKit_1.toast)(Config_1.Config.save() ? "已保存" : "保存失败");
-                    }
-                }).view, w: (width - 12) / 3
-            }
-        ], 24, 6);
         col.finish();
         content.AddChild(col.com);
+    }
+    buildFooter(ctx) {
+        const width = ctx.width;
+        const content = ctx.content;
+        const bw = (width - 12) / 3;
+        const b1 = new UiKit_1.UiButton("重新加载配置", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                Config_1.Config.load();
+                (0, FontService_1.refreshFontCache)();
+                ScanController_1.ScanController.notify();
+                (0, UiKit_1.toast)("已重新加载");
+            }
+        });
+        const b2 = new UiKit_1.UiButton("恢复默认", {
+            w: bw, h: 24, size: 11,
+            onClick: () => {
+                (0, Api_1.confirm)("恢复默认配置？（当前配置将被覆盖）", (r) => {
+                    if (r != "yes")
+                        return;
+                    Config_1.Config.update(c => {
+                        const d = JSON.parse(JSON.stringify(Config_1.DEFAULT_CONFIG));
+                        for (const k of Object.keys(d))
+                            c[k] = d[k];
+                    });
+                    ScanController_1.ScanController.notify();
+                    (0, UiKit_1.toast)("已恢复默认");
+                });
+            }
+        });
+        const b3 = new UiKit_1.UiButton("保存配置", {
+            w: bw, h: 24, size: 11, bg: UiKit_1.COLORS.accent, hover: UiKit_1.COLORS.accentHover, color: "#fff",
+            onClick: () => {
+                (0, UiKit_1.toast)(Config_1.Config.save() ? "已保存" : "保存失败");
+            }
+        });
+        b1.view.SetXY(0, 0);
+        b2.view.SetXY(bw + 6, 0);
+        b3.view.SetXY((bw + 6) * 2, 0);
+        content.AddChild(b1.view);
+        content.AddChild(b2.view);
+        content.AddChild(b3.view);
     }
     buildStringList(col, width, title, items, inputHint, apply) {
         col.add((0, UiKit_1.createLabel)(title, { size: 13, bold: true, color: UiKit_1.COLORS.text }), 18);
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             col.row([
-                { obj: (0, UiKit_1.createLabel)(item, { size: 12, color: UiKit_1.COLORS.textDim }), w: width - 78 },
+                { obj: (0, UiKit_1.createLabel)(item, { size: 12, color: UiKit_1.COLORS.textDim, width: Math.max(40, width - 78), wrap: false }), w: width - 78 },
                 {
                     obj: new UiKit_1.UiButton("删除", {
                         w: 66, h: 20, size: 11,

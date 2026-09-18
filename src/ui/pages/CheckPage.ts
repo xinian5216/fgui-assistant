@@ -1,21 +1,26 @@
 import { FairyGUI } from 'csharp';
-import { Page } from '../MainPanel';
+import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, UiCheckbox, createLabel, toast } from '../UiKit';
 import { ScanController } from '../../services/ScanController';
 import { getActiveDoc, getCurrentPackageName } from '../../services/EditorService';
-import { buildIssueRow } from '../IssueView';
-import { Issue, Severity } from '../../core/Types';
+import { renderIssueItem } from '../IssueView';
 import { Store } from '../../core/Store';
 import { Engine } from '../../core/RuleEngine';
 import { applySafeFixes } from '../../services/FixService';
+import { LAYOUT } from '../Layout';
+import { VirtualList } from '../Scroll';
 
 export class CheckPage implements Page {
     id = "check";
     title = "规范检查";
+    manageLayout = true;
     private showIgnored: boolean = false;
     private filterSeverity: string = "";
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
+        const height = ctx.height;
         const col = new Column(width, 6);
         const self = this;
 
@@ -61,7 +66,7 @@ export class CheckPage implements Page {
             : ScanController.lastScope == "package" ? `Package「${result.model.packageName}」`
                 : `组件「${result.model.componentName}」`;
         col.add(createLabel(`检查范围：${scopeName}`, { size: 12, color: COLORS.textDim, width: width, wrap: true }), 18);
-        col.add(createLabel(`✕ ${result.errorCount} 错误    ⚠ ${result.warningCount} 警告    ⓘ ${result.infoCount} 建议`, { size: 13, color: COLORS.text, bold: true }), 20);
+        col.add(createLabel(`✕ ${result.errorCount} 错误    ⚠ ${result.warningCount} 警告    ⓘ ${result.infoCount} 建议`, { size: 13, color: COLORS.text, bold: true, width: width, wrap: true }), 20);
 
         const fixable = result.issues.filter(i => i.fixable && i.fixType && i.fixType != "ackProtected");
         if (fixable.length > 0) {
@@ -98,25 +103,7 @@ export class CheckPage implements Page {
         const cbIgnored = new UiCheckbox("显示已忽略（本次 + 永久）", this.showIgnored, (v) => { self.showIgnored = v; ScanController.notify(); }, { w: width });
         col.add(cbIgnored.view, 20);
 
-        let issues = result.issues;
-        if (this.showIgnored && ScanController.lastScope == "component" && result.model && result.model.docUrl) {
-            issues = Engine.runOnModel(result.model, true);
-        }
-        if (this.filterSeverity) issues = issues.filter(i => i.severity == this.filterSeverity);
-        if (issues.length == 0) {
-            col.add(createLabel("✓ 没有符合筛选的问题", { size: 13, color: COLORS.ok }), 22);
-        } else {
-            const shown = issues.slice(0, 200);
-            for (const issue of shown) {
-                buildIssueRow(col, issue, width, { rebuild: () => ScanController.notify() });
-            }
-            if (issues.length > 200) {
-                col.add(createLabel(`（仅显示前 200 条，共 ${issues.length} 条）`, { size: 11, color: COLORS.textDim }), 16);
-            }
-        }
-
         if (Store.permanentIgnoreCount > 0) {
-            col.space(4);
             const btnClearIgnore = new UiButton(`清除全部永久忽略（${Store.permanentIgnoreCount}）`, {
                 w: width, h: 22, size: 11,
                 onClick: () => {
@@ -128,7 +115,29 @@ export class CheckPage implements Page {
             col.add(btnClearIgnore.view, 22);
         }
 
+        let issues = result.issues;
+        if (this.showIgnored && ScanController.lastScope == "component" && result.model && result.model.docUrl) {
+            issues = Engine.runOnModel(result.model, true);
+        }
+        if (this.filterSeverity) issues = issues.filter(i => i.severity == this.filterSeverity);
+
+        if (issues.length == 0) {
+            col.add(createLabel("✓ 没有符合筛选的问题", { size: 13, color: COLORS.ok }), 22);
+            col.finish();
+            content.AddChild(col.com);
+            return;
+        }
+
         col.finish();
         content.AddChild(col.com);
+
+        const headerH = col.cursorY;
+        const listH = Math.max(40, height - headerH);
+        const list = new VirtualList(width, listH, LAYOUT.ISSUE_ITEM_H, (_i, item, issue, itemW) => {
+            renderIssueItem(item, issue, itemW, { rebuild: () => ScanController.notify() });
+        });
+        list.view.SetXY(0, headerH);
+        list.setData(issues);
+        content.AddChild(list.view);
     }
 }

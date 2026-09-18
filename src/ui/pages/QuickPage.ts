@@ -1,5 +1,5 @@
 import { FairyGUI, FairyEditor } from 'csharp';
-import { Page } from '../MainPanel';
+import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, createLabel, toast } from '../UiKit';
 import { getSelection, getExtType, setObjProperty, setObjExtProperty } from '../../services/EditorService';
 import { Config } from '../../core/Config';
@@ -23,7 +23,9 @@ export class QuickPage implements Page {
     id = "quick";
     title = "快速设置";
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new Column(width, 6);
         const self = this;
         const selection = getSelection();

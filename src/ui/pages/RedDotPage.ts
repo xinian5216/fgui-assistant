@@ -1,5 +1,5 @@
 import { FairyGUI } from 'csharp';
-import { Page } from '../MainPanel';
+import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, createLabel, createHLine, createTag, toast } from '../UiKit';
 import { getActiveDoc, switchControllerPage, readControllers, getCurrentComponentName } from '../../services/EditorService';
 import { Config } from '../../core/Config';
@@ -9,7 +9,9 @@ export class RedDotPage implements Page {
     id = "reddot";
     title = "红点工具";
 
-    build(content: FairyGUI.GComponent, width: number): void {
+    build(ctx: PageContext): void {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new Column(width, 6);
         const cfg = Config.config.redDot || { controllerNamePattern: "HongDian", pageOff: "0", pageOn: "1" };
         const doc = getActiveDoc();

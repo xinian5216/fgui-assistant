@@ -11,7 +11,9 @@ class ChecklistPage {
         this.id = "checklist";
         this.title = "PS 清单";
     }
-    build(content, width) {
+    build(ctx) {
+        const content = ctx.content;
+        const width = ctx.width;
         const col = new UiKit_1.Column(width, 6);
         const cfg = Config_1.Config.config;
         const items = cfg.psChecklist || [];
