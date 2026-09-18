@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.1-green.svg)](CHANGELOG.md)
 
 FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工记忆的 UI 规范变成可视化检查流程。
 
@@ -46,7 +46,7 @@ npm run pack
 5. 入口：
 
 - 检查器（Inspector）面板中的 **FGUI Assistant**
-- 主菜单 **FGUI Assistant**（打开独立窗口）
+- 主菜单 **FGUI Assistant → 打开助手窗口**（打开独立窗口；子菜单还提供「检查当前组件」）
 
 ---
 
@@ -263,9 +263,24 @@ npm run watch          # 改源码后自动编译
 npm test
 ```
 
-对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描做 Node 冒烟测试（不启动 FairyGUI）。
+对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层做 Node 冒烟测试（不启动 FairyGUI）。
 
 实际编辑器内测试仍需在 FairyGUI 中完成。
+
+### Editor Integration Test（手工回归）
+
+以下场景无法在 Node 环境模拟，每次发版前请在真实 FairyGUI Editor 中手工验证：
+
+1. 启动 FairyGUI，无异常、无 NRE
+2. 点击主菜单 **FGUI Assistant → 打开助手窗口**，无 `MenuBar.Popup` NullReferenceException
+3. 连续打开 / 关闭插件窗口 20 次，无异常
+4. 点击其他顶部菜单（File / Edit / Resources 等）不受影响
+5. 插件 reload：菜单不重复（只有一个 FGUI Assistant）
+6. 切换项目：无旧对象遗留
+7. 关闭再启动 FairyGUI：正常
+8. Inspector 面板仍正常显示与刷新
+
+> 历史问题：0.1.0 曾因用 3 参 `AddItem` 在根 MenuBar 注册无子菜单的顶级项，导致点击菜单时 `MenuBar.Popup` 抛 NullReferenceException，0.1.1 已修复。
 
 推送与 PR 会自动运行 GitHub Actions（编译 + 测试），见 `.github/workflows/ci.yml`。
 

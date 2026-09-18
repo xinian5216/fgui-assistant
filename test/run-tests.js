@@ -5,6 +5,68 @@ const os = require('os');
 
 const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'fgui-test-'));
 
+const editorEventLog = [];
+const projectHandlers = { opened: [], closed: [] };
+
+// 模拟 FairyEditor.Component.IMenu / MenuBar 的合同：
+// 根 MenuBar 上的顶级项必须是“子菜单容器”。
+// 真实编辑器中点击顶级项会执行 MenuBar.Popup(item)，读取该项关联的 Popup；
+// 用 3 参 AddItem 注册“点击即执行”的顶级项没有 Popup，会抛 NullReferenceException。
+function makeMenuMock(isRoot) {
+    const items = new Map();
+    const submenus = new Map();
+    return {
+        _isRoot: isRoot,
+        _items: items,
+        _submenus: submenus,
+        AddItem(caption, name, a3, a4, a5) {
+            let isSubMenu, cb;
+            if (typeof a3 === 'function') {
+                cb = a3;
+                isSubMenu = false;
+            } else {
+                isSubMenu = !!a4;
+                cb = a5;
+            }
+            if (!caption || !name) throw new Error('menu AddItem 收到空的 caption/name');
+            if (typeof cb !== 'function') throw new Error('菜单项回调无效: ' + name);
+            if (isRoot && !isSubMenu) {
+                throw new Error('NullReferenceException(simulated): MenuBar.Popup 顶级项缺少子菜单');
+            }
+            if (items.has(name)) throw new Error('重复注册菜单项: ' + name);
+            items.set(name, { caption: caption, isSubMenu: isSubMenu, cb: cb });
+        },
+        GetSubMenu(name) {
+            if (!items.has(name)) return null;
+            if (!submenus.has(name)) submenus.set(name, makeMenuMock(false));
+            return submenus.get(name);
+        },
+        RemoveItem(name) {
+            items.delete(name);
+            const s = submenus.get(name);
+            if (s) {
+                s.ClearItems();
+                submenus.delete(name);
+            }
+        },
+        ClearItems() {
+            items.clear();
+            for (const s of submenus.values()) s.ClearItems();
+            submenus.clear();
+        },
+        AddSeperator() { },
+        SetItemEnabled() { },
+        SetItemChecked() { },
+        IsItemChecked() { return false; },
+        SetItemText() { },
+        Invoke(name) {
+            const it = items.get(name);
+            if (it && it.cb) it.cb(name);
+        },
+        Dispose() { }
+    };
+}
+
 const csharpMock = {
     FairyGUI: {
         Utils: {
@@ -23,10 +85,37 @@ const csharpMock = {
         TimerCallback: function (f) { return f; }
     },
     FairyEditor: {
+        EditorEvents: {
+            SelectionChanged: 'SelectionChanged',
+            DocumentActivated: 'DocumentActivated'
+        },
+        View: {
+            PluginInspector: class PluginInspector {
+                constructor() { this.panel = null; this.updateAction = null; }
+            }
+        },
         App: {
             project: { basePath: tmpBase },
             consoleView: { Log() { }, LogWarning() { }, LogError() { } },
-            preferenceFolder: tmpBase
+            preferenceFolder: tmpBase,
+            menu: makeMenuMock(true),
+            inspectorView: { AddInspector() { }, RemoveInspector() { } },
+            docFactory: { ConnectInspector() { }, disconnectInspector() { } },
+            On(type, d) { editorEventLog.push({ type: type, d: d }); },
+            Off(type, d) {
+                const i = editorEventLog.findIndex(h => h.type === type && h.d === d);
+                if (i >= 0) editorEventLog.splice(i, 1);
+            },
+            add_onProjectOpened(h) { projectHandlers.opened.push(h); },
+            remove_onProjectOpened(h) {
+                const i = projectHandlers.opened.indexOf(h);
+                if (i >= 0) projectHandlers.opened.splice(i, 1);
+            },
+            add_onProjectClosed(h) { projectHandlers.closed.push(h); },
+            remove_onProjectClosed(h) {
+                const i = projectHandlers.closed.indexOf(h);
+                if (i >= 0) projectHandlers.closed.splice(i, 1);
+            }
         },
         FontUtil: { GetOSInstalledFontNames: () => ({ Count: 0, get_Item: () => null }) }
     },
@@ -234,6 +323,55 @@ assert(pr && pr.model.componentName === '（整个项目）', '合并模型标�
 assert(pr.issues.filter(i => i.ruleId === 'buttonScale' && i.objectName === 'button2').length === 2, '两个 Package 的按钮缩放问题都被收集');
 assert(pr.errorCount + pr.warningCount + pr.infoCount === pr.issues.length, '汇总统计一致');
 assert(pr.warningCount >= 10, '合并警告数包含两个 Package 的结果');
+
+console.log('== 菜单注册回归（MenuBar.Popup NRE） ==');
+const rootMenu = csharpMock.FairyEditor.App.menu;
+// 合同验证：根 MenuBar 拒绝无 Popup 的顶级项（旧实现的死因）
+let rootNre = false;
+try { rootMenu.AddItem('X', 'x', () => { }); } catch (e) { rootNre = true; }
+assert(rootNre, 'mock 合同：根 MenuBar 注册非子菜单顶级项触发 Popup NRE');
+
+const mainPath = path.join(__dirname, '..', 'dist', 'main.js');
+
+// 第一次加载
+const plugin1 = require(mainPath);
+const rootItems = rootMenu._items;
+assert(rootItems.has('fguiAssistantMain'), '顶级菜单已注册');
+assert(rootItems.get('fguiAssistantMain').isSubMenu === true, '顶级菜单声明为子菜单容器（Popup 存在）');
+const sub1 = rootMenu._submenus.get('fguiAssistantMain');
+assert(sub1 && sub1._items.has('fguiAssistantOpen'), '子菜单包含「打开助手窗口」命令');
+assert(sub1 && sub1._items.has('fguiAssistantScan'), '子菜单包含「检查当前组件」命令');
+
+// 正常卸载：菜单移除 + 监听全部解除
+plugin1.onDestroy();
+assert(!rootItems.has('fguiAssistantMain'), 'onDestroy 移除顶级菜单');
+assert(editorEventLog.length === 0, 'onDestroy 解除全部事件监听');
+assert(projectHandlers.opened.length === 0 && projectHandlers.closed.length === 0, 'onDestroy 解除项目事件监听');
+
+// 正常 reload：先 destroy 再加载，仍只有 1 个顶级菜单
+delete require.cache[require.resolve(mainPath)];
+const plugin2 = require(mainPath);
+assert(rootItems.size === 1 && rootItems.has('fguiAssistantMain'), '正常 reload 后顶级菜单仅 1 项');
+
+// 异常 reload：旧实例未 destroy 直接再加载（模拟编辑器 JsEnv 重建），
+// 插件靠加载时预清理避免重复项与悬空回调
+delete require.cache[require.resolve(mainPath)];
+const plugin3 = require(mainPath);
+assert(rootItems.size === 1 && rootItems.has('fguiAssistantMain'), '异常 reload（未清理）后顶级菜单不重复');
+const sub3 = rootMenu._submenus.get('fguiAssistantMain');
+assert(sub3 && sub3._items.size === 2, '异常 reload 后子菜单命令不重复');
+
+// 菜单命令回调可安全调用（不抛异常）
+let invoked = true;
+try { sub3.Invoke('fguiAssistantOpen'); } catch (e) { invoked = false; }
+try { sub3.Invoke('fguiAssistantScan'); } catch (e) { invoked = false; }
+assert(invoked, '菜单命令回调可安全调用');
+
+// 最终清理（含重复 destroy 的健壮性）
+plugin3.onDestroy();
+plugin2.onDestroy();
+assert(!rootItems.has('fguiAssistantMain'), '最终卸载后顶级菜单已移除');
+assert(editorEventLog.length === 0, '最终卸载后无残留事件监听');
 
 console.log(`\n结果: ${passed} 通过, ${failed} 失败`);
 process.exit(failed > 0 ? 1 : 0);

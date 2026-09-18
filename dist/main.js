@@ -11,8 +11,11 @@ const MainPanel_1 = require("./ui/MainPanel");
 const FloatingWindow_1 = require("./ui/FloatingWindow");
 const INSPECTOR_NAME = "FGUI Assistant";
 const MENU_ITEM_NAME = "fguiAssistantMain";
+const MENU_CMD_OPEN = "fguiAssistantOpen";
+const MENU_CMD_SCAN = "fguiAssistantScan";
 let floatingWindow = null;
 let inspectorPanel = null;
+let mainMenu = null;
 let eventHandlers = [];
 let refreshTimerPending = false;
 let projectOpenedHandler = null;
@@ -99,18 +102,7 @@ function init() {
     catch (e) {
         (0, Api_1.logWarn)("注册检查器失败: " + e);
     }
-    try {
-        Api_1.App.menu.AddItem("FGUI Assistant", MENU_ITEM_NAME, (name) => {
-            try {
-                if (floatingWindow)
-                    floatingWindow.toggle();
-            }
-            catch (e) { }
-        });
-    }
-    catch (e) {
-        (0, Api_1.logWarn)("注册菜单失败（不影响使用）: " + e);
-    }
+    registerMenu();
     subscribeEvent(csharp_1.FairyEditor.EditorEvents.SelectionChanged);
     subscribeEvent(csharp_1.FairyEditor.EditorEvents.DocumentActivated);
     projectOpenedHandler = () => {
@@ -136,7 +128,38 @@ function init() {
         Api_1.App.add_onProjectClosed(projectClosedHandler);
     }
     catch (e) { }
-    (0, Api_1.log)("插件已加载。菜单：FGUI Assistant；或在检查器（Inspector）中找到 FGUI Assistant 面板。");
+    (0, Api_1.log)("插件已加载。主菜单：FGUI Assistant → 打开助手窗口；或使用检查器（Inspector）中的 FGUI Assistant 面板。");
+}
+function registerMenu() {
+    try {
+        try {
+            Api_1.App.menu.RemoveItem(MENU_ITEM_NAME);
+        }
+        catch (e) { }
+        Api_1.App.menu.AddItem("FGUI Assistant", MENU_ITEM_NAME, -1, true, (_n) => { });
+        mainMenu = Api_1.App.menu.GetSubMenu(MENU_ITEM_NAME);
+        if (mainMenu) {
+            mainMenu.AddItem("打开助手窗口", MENU_CMD_OPEN, (_n) => {
+                try {
+                    if (floatingWindow)
+                        floatingWindow.open();
+                }
+                catch (e) { }
+            });
+            mainMenu.AddItem("检查当前组件", MENU_CMD_SCAN, (_n) => {
+                try {
+                    ScanController_1.ScanController.scanCurrentComponent();
+                }
+                catch (e) { }
+            });
+        }
+        else {
+            (0, Api_1.logWarn)("获取 FGUI Assistant 子菜单失败，菜单入口不可用（Inspector 面板不受影响）");
+        }
+    }
+    catch (e) {
+        (0, Api_1.logWarn)("注册菜单失败（不影响 Inspector 面板使用）: " + e);
+    }
 }
 function onPublish(handler) {
     try {
@@ -175,9 +198,20 @@ function onDestroy() {
     }
     catch (e) { }
     try {
+        if (mainMenu)
+            mainMenu.RemoveItem(MENU_CMD_OPEN);
+    }
+    catch (e) { }
+    try {
+        if (mainMenu)
+            mainMenu.RemoveItem(MENU_CMD_SCAN);
+    }
+    catch (e) { }
+    try {
         Api_1.App.menu.RemoveItem(MENU_ITEM_NAME);
     }
     catch (e) { }
+    mainMenu = null;
     for (const h of eventHandlers) {
         try {
             Api_1.App.Off(h.type, h.cb);

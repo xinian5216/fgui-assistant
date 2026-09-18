@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.1 — 2026-09-18
+
+### 修复
+
+- **主菜单 NullReferenceException**：点击主菜单「FGUI Assistant」时 `FairyEditor.Component.MenuBar.Popup` 抛空引用异常。
+  - 根因：原实现使用 `App.menu.AddItem` 的 3 参重载在根 MenuBar 上注册了「点击即执行」的命令型顶级项（无子菜单 / 无 Popup）。编辑器的 MenuBar 点击顶级项时固定执行 `MenuBar.Popup(item)` 读取该项关联的 Popup，读不到即抛 NullReferenceException。
+  - 修复：改用官方 5 参重载 `AddItem(caption, name, atIndex, isSubMenu=true, callback)` 把顶级项声明为子菜单容器，再用 `GetSubMenu` 注册命令：
+    - `FGUI Assistant → 打开助手窗口`
+    - `FGUI Assistant → 检查当前组件`
+  - 加载时预清理同名菜单项，插件 reload（含异常 reload / 未触发 onDestroy 的场景）不再重复注册或遗留指向已销毁 JS 环境的悬空回调。
+  - 卸载时同时移除子菜单命令与顶级菜单。
+
+### 测试
+
+- 新增菜单注册层回归测试（Node 模拟 MenuBar 合同）：根菜单拒绝无 Popup 的顶级项（对应本次 NRE）、reload 不重复注册、`onDestroy` 后无残留菜单与事件监听。合计 58 项测试。
+
 ## 0.1.0 — 2026-09-17
 
 第一版。面向公司 FairyGUI 项目生产环境。

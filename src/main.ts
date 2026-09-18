@@ -8,9 +8,12 @@ import { FloatingWindow } from './ui/FloatingWindow';
 
 const INSPECTOR_NAME = "FGUI Assistant";
 const MENU_ITEM_NAME = "fguiAssistantMain";
+const MENU_CMD_OPEN = "fguiAssistantOpen";
+const MENU_CMD_SCAN = "fguiAssistantScan";
 
 let floatingWindow: FloatingWindow = null;
 let inspectorPanel: MainPanel = null;
+let mainMenu: FairyEditor.Component.IMenu = null;
 let eventHandlers: { type: string; cb: any }[] = [];
 let refreshTimerPending = false;
 let projectOpenedHandler: any = null;
@@ -83,15 +86,7 @@ function init(): void {
         logWarn("注册检查器失败: " + e);
     }
 
-    try {
-        App.menu.AddItem("FGUI Assistant", MENU_ITEM_NAME, (name: string) => {
-            try {
-                if (floatingWindow) floatingWindow.toggle();
-            } catch (e) { }
-        });
-    } catch (e) {
-        logWarn("注册菜单失败（不影响使用）: " + e);
-    }
+    registerMenu();
 
     subscribeEvent(FairyEditor.EditorEvents.SelectionChanged);
     subscribeEvent(FairyEditor.EditorEvents.DocumentActivated);
@@ -112,7 +107,34 @@ function init(): void {
     try { App.add_onProjectOpened(projectOpenedHandler); } catch (e) { }
     try { App.add_onProjectClosed(projectClosedHandler); } catch (e) { }
 
-    log("插件已加载。菜单：FGUI Assistant；或在检查器（Inspector）中找到 FGUI Assistant 面板。");
+    log("插件已加载。主菜单：FGUI Assistant → 打开助手窗口；或使用检查器（Inspector）中的 FGUI Assistant 面板。");
+}
+
+function registerMenu(): void {
+    try {
+        // 插件 reload 时旧实例可能遗留同名菜单（回调指向已销毁的 JS 环境），
+        // 先移除再注册，避免重复项与悬空回调
+        try { App.menu.RemoveItem(MENU_ITEM_NAME); } catch (e) { }
+
+        // 顶级菜单必须使用带 isSubMenu 的重载声明为“下拉菜单容器”：
+        // 根 MenuBar 点击顶级项时固定执行 MenuBar.Popup(item)，
+        // 若用 3 参重载注册“点击即执行”项，Popup 拿不到关联子菜单会抛 NullReferenceException
+        App.menu.AddItem("FGUI Assistant", MENU_ITEM_NAME, -1, true, (_n: string) => { });
+
+        mainMenu = App.menu.GetSubMenu(MENU_ITEM_NAME);
+        if (mainMenu) {
+            mainMenu.AddItem("打开助手窗口", MENU_CMD_OPEN, (_n: string) => {
+                try { if (floatingWindow) floatingWindow.open(); } catch (e) { }
+            });
+            mainMenu.AddItem("检查当前组件", MENU_CMD_SCAN, (_n: string) => {
+                try { ScanController.scanCurrentComponent(); } catch (e) { }
+            });
+        } else {
+            logWarn("获取 FGUI Assistant 子菜单失败，菜单入口不可用（Inspector 面板不受影响）");
+        }
+    } catch (e) {
+        logWarn("注册菜单失败（不影响 Inspector 面板使用）: " + e);
+    }
 }
 
 function onPublish(handler: FairyEditor.PublishHandler): void {
@@ -138,7 +160,10 @@ function onPublish(handler: FairyEditor.PublishHandler): void {
 function onDestroy(): void {
     try { App.inspectorView.RemoveInspector(INSPECTOR_NAME); } catch (e) { }
     try { App.docFactory.disconnectInspector(INSPECTOR_NAME); } catch (e) { }
+    try { if (mainMenu) mainMenu.RemoveItem(MENU_CMD_OPEN); } catch (e) { }
+    try { if (mainMenu) mainMenu.RemoveItem(MENU_CMD_SCAN); } catch (e) { }
     try { App.menu.RemoveItem(MENU_ITEM_NAME); } catch (e) { }
+    mainMenu = null;
     for (const h of eventHandlers) {
         try { App.Off(h.type, h.cb); } catch (e) { }
     }
