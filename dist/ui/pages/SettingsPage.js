@@ -107,6 +107,60 @@ class SettingsPage {
                 }).view, w: 90
             }
         ], 22);
+        const svnPath = (cfg.svn && cfg.svn.tortoiseProcPath) || Config_1.DEFAULT_CONFIG.svn.tortoiseProcPath;
+        col.add((0, UiKit_1.createLabel)("SVN 工具", { size: 13, bold: true, color: UiKit_1.COLORS.text }), 18);
+        col.add((0, UiKit_1.createLabel)(`TortoiseProc：${svnPath}`, { size: 11, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 26);
+        col.add(new UiKit_1.UiButton("修改 TortoiseProc 路径", {
+            w: width, h: 20, size: 11,
+            onClick: () => {
+                Api_1.App.Input("TortoiseProc.exe 完整路径", svnPath, (ret) => {
+                    if (!ret)
+                        return;
+                    Config_1.Config.update(c => {
+                        if (!c.svn)
+                            c.svn = { tortoiseProcPath: ret };
+                        else
+                            c.svn.tortoiseProcPath = ret;
+                    });
+                    ScanController_1.ScanController.notify();
+                });
+            }
+        }).view, 20);
+        const rc = cfg.resourceCheck || Config_1.DEFAULT_CONFIG.resourceCheck;
+        col.add((0, UiKit_1.createLabel)("资源体检", { size: 13, bold: true, color: UiKit_1.COLORS.text }), 18);
+        col.row([
+            { obj: (0, UiKit_1.createLabel)(`大图阈值：${rc.maxImageKB} KB`, { size: 12, color: UiKit_1.COLORS.textDim, width: Math.max(40, width - 96), wrap: false }), w: width - 96 },
+            {
+                obj: new UiKit_1.UiButton("修改", {
+                    w: 90, h: 20, size: 11,
+                    onClick: () => {
+                        Api_1.App.Input("超大图片阈值（KB，正整数）", "" + rc.maxImageKB, (ret) => {
+                            const v = parseInt(ret, 10);
+                            if (isNaN(v) || v <= 0) {
+                                (0, UiKit_1.toast)("请输入正整数");
+                                return;
+                            }
+                            Config_1.Config.update(c => {
+                                if (!c.resourceCheck)
+                                    c.resourceCheck = { maxImageKB: v, checkDuplicate: true };
+                                else
+                                    c.resourceCheck.maxImageKB = v;
+                            });
+                            ScanController_1.ScanController.notify();
+                        });
+                    }
+                }).view, w: 90
+            }
+        ], 22);
+        const cbDup = new UiKit_1.UiCheckbox("检测重复图片（MD5）", !!rc.checkDuplicate, (v) => {
+            Config_1.Config.update(c => {
+                if (!c.resourceCheck)
+                    c.resourceCheck = { maxImageKB: rc.maxImageKB, checkDuplicate: v };
+                else
+                    c.resourceCheck.checkDuplicate = v;
+            });
+        }, { w: width });
+        col.add(cbDup.view, 20);
         col.finish();
         content.AddChild(col.com);
     }

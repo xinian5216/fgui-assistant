@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MainPanel = void 0;
+exports.MainPanel = exports.MAIN_PANEL_PAGE_COUNT = void 0;
 const csharp_1 = require("csharp");
 const UiKit_1 = require("./UiKit");
 const ScanController_1 = require("../services/ScanController");
+const ResourceAudit_1 = require("../services/ResourceAudit");
 const HomePage_1 = require("./pages/HomePage");
 const CheckPage_1 = require("./pages/CheckPage");
+const ResourcePage_1 = require("./pages/ResourcePage");
 const QuickPage_1 = require("./pages/QuickPage");
 const NamingPage_1 = require("./pages/NamingPage");
 const LayoutPage_1 = require("./pages/LayoutPage");
@@ -15,6 +17,7 @@ const ChecklistPage_1 = require("./pages/ChecklistPage");
 const SettingsPage_1 = require("./pages/SettingsPage");
 const Layout_1 = require("./Layout");
 const Scroll_1 = require("./Scroll");
+exports.MAIN_PANEL_PAGE_COUNT = 10;
 class MainPanel {
     constructor(width, height) {
         this.pages = [];
@@ -30,6 +33,7 @@ class MainPanel {
         this.pages = [
             new HomePage_1.HomePage(),
             new CheckPage_1.CheckPage(),
+            new ResourcePage_1.ResourcePage(),
             new QuickPage_1.QuickPage(),
             new NamingPage_1.NamingPage(),
             new LayoutPage_1.LayoutPage(),
@@ -63,6 +67,7 @@ class MainPanel {
         this.view.AddChild(this.viewport);
         const self = this;
         ScanController_1.ScanController.onChanged(() => { self.rebuildBody(); });
+        ResourceAudit_1.ResourceAuditController.onChanged(() => { self.rebuildBody(); });
         try {
             this.view.onSizeChanged.Add(() => {
                 if (self._applyingSize)

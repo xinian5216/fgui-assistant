@@ -1,6 +1,6 @@
 import { FairyGUI } from 'csharp';
 import { Page, PageContext } from '../MainPanel';
-import { Column, COLORS, UiButton, createLabel, toast } from '../UiKit';
+import { Column, COLORS, UiButton, UiCheckbox, createLabel, toast } from '../UiKit';
 import { Config, DEFAULT_CONFIG, orderedNamingKeys } from '../../core/Config';
 import { App, confirm } from '../../Api';
 import { ScanController } from '../../services/ScanController';
@@ -108,6 +108,52 @@ export class SettingsPage implements Page {
                 }).view, w: 90
             }
         ], 22);
+
+        const svnPath = (cfg.svn && cfg.svn.tortoiseProcPath) || DEFAULT_CONFIG.svn.tortoiseProcPath;
+        col.add(createLabel("SVN 工具", { size: 13, bold: true, color: COLORS.text }), 18);
+        col.add(createLabel(`TortoiseProc：${svnPath}`, { size: 11, color: COLORS.textDim, width: width, wrap: true }), 26);
+        col.add(new UiButton("修改 TortoiseProc 路径", {
+            w: width, h: 20, size: 11,
+            onClick: () => {
+                App.Input("TortoiseProc.exe 完整路径", svnPath, (ret) => {
+                    if (!ret) return;
+                    Config.update(c => {
+                        if (!c.svn) c.svn = { tortoiseProcPath: ret };
+                        else c.svn.tortoiseProcPath = ret;
+                    });
+                    ScanController.notify();
+                });
+            }
+        }).view, 20);
+
+        const rc = cfg.resourceCheck || DEFAULT_CONFIG.resourceCheck;
+        col.add(createLabel("资源体检", { size: 13, bold: true, color: COLORS.text }), 18);
+        col.row([
+            { obj: createLabel(`大图阈值：${rc.maxImageKB} KB`, { size: 12, color: COLORS.textDim, width: Math.max(40, width - 96), wrap: false }), w: width - 96 },
+            {
+                obj: new UiButton("修改", {
+                    w: 90, h: 20, size: 11,
+                    onClick: () => {
+                        App.Input("超大图片阈值（KB，正整数）", "" + rc.maxImageKB, (ret) => {
+                            const v = parseInt(ret, 10);
+                            if (isNaN(v) || v <= 0) { toast("请输入正整数"); return; }
+                            Config.update(c => {
+                                if (!c.resourceCheck) c.resourceCheck = { maxImageKB: v, checkDuplicate: true };
+                                else c.resourceCheck.maxImageKB = v;
+                            });
+                            ScanController.notify();
+                        });
+                    }
+                }).view, w: 90
+            }
+        ], 22);
+        const cbDup = new UiCheckbox("检测重复图片（MD5）", !!rc.checkDuplicate, (v) => {
+            Config.update(c => {
+                if (!c.resourceCheck) c.resourceCheck = { maxImageKB: rc.maxImageKB, checkDuplicate: v };
+                else c.resourceCheck.checkDuplicate = v;
+            });
+        }, { w: width });
+        col.add(cbDup.view, 20);
 
         col.finish();
         content.AddChild(col.com);

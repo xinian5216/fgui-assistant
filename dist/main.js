@@ -7,12 +7,17 @@ const Api_1 = require("./Api");
 const Config_1 = require("./core/Config");
 const Store_1 = require("./core/Store");
 const ScanController_1 = require("./services/ScanController");
+const EnvCheck_1 = require("./services/EnvCheck");
+const SvnService_1 = require("./services/SvnService");
 const MainPanel_1 = require("./ui/MainPanel");
 const FloatingWindow_1 = require("./ui/FloatingWindow");
 const INSPECTOR_NAME = "FGUI Assistant";
 const MENU_ITEM_NAME = "fguiAssistantMain";
 const MENU_CMD_OPEN = "fguiAssistantOpen";
 const MENU_CMD_SCAN = "fguiAssistantScan";
+const MENU_CMD_SVN_UP = "fguiAssistantSvnUpdate";
+const MENU_CMD_SVN_CI = "fguiAssistantSvnCommit";
+const MENU_CMD_ENV = "fguiAssistantEnv";
 let floatingWindow = null;
 let inspectorPanel = null;
 let mainMenu = null;
@@ -81,7 +86,8 @@ function subscribeEvent(type) {
     catch (e) { }
 }
 function init() {
-    (0, Api_1.log)("插件加载中…");
+    const ver = (0, Api_1.getEditorVersion)();
+    (0, Api_1.log)("插件加载中…" + (ver ? `（Editor ${ver}）` : ""));
     try {
         Config_1.Config.load();
     }
@@ -152,6 +158,32 @@ function registerMenu() {
                 }
                 catch (e) { }
             });
+            try {
+                mainMenu.AddSeperator();
+            }
+            catch (e) { }
+            mainMenu.AddItem("SVN 更新项目", MENU_CMD_SVN_UP, (_n) => {
+                try {
+                    (0, SvnService_1.svnUpdateProject)();
+                }
+                catch (e) { }
+            });
+            mainMenu.AddItem("SVN 提交当前包", MENU_CMD_SVN_CI, (_n) => {
+                try {
+                    (0, SvnService_1.svnCommitCurrentPackage)();
+                }
+                catch (e) { }
+            });
+            try {
+                mainMenu.AddSeperator();
+            }
+            catch (e) { }
+            mainMenu.AddItem("环境自检", MENU_CMD_ENV, (_n) => {
+                try {
+                    (0, EnvCheck_1.showEnvCheckDialog)();
+                }
+                catch (e) { }
+            });
         }
         else {
             (0, Api_1.logWarn)("获取 FGUI Assistant 子菜单失败，菜单入口不可用（Inspector 面板不受影响）");
@@ -181,8 +213,15 @@ function onPublish(handler) {
         if (pkgName && protectedList.indexOf(pkgName) >= 0) {
             (0, Api_1.logWarn)(`正在发布受保护的公共 Package「${pkgName}」，请确认其中的修改都是必要的！`);
         }
-        if (exportPath)
+        if (exportPath) {
+            if (!(0, Api_1.dirExists)(exportPath))
+                (0, Api_1.logWarn)(`发布路径不存在：${exportPath}`);
             (0, Api_1.log)(`发布路径：${exportPath}`);
+        }
+        try {
+            ScanController_1.ScanController.notify();
+        }
+        catch (e) { }
     }
     catch (e) {
         console.warn("[FGUI助手] onPublish 异常: " + e);
@@ -205,6 +244,21 @@ function onDestroy() {
     try {
         if (mainMenu)
             mainMenu.RemoveItem(MENU_CMD_SCAN);
+    }
+    catch (e) { }
+    try {
+        if (mainMenu)
+            mainMenu.RemoveItem(MENU_CMD_SVN_UP);
+    }
+    catch (e) { }
+    try {
+        if (mainMenu)
+            mainMenu.RemoveItem(MENU_CMD_SVN_CI);
+    }
+    catch (e) { }
+    try {
+        if (mainMenu)
+            mainMenu.RemoveItem(MENU_CMD_ENV);
     }
     catch (e) { }
     try {

@@ -1,8 +1,10 @@
 import { FairyGUI } from 'csharp';
 import { COLORS, createGraph, createLabel, clearChildren, fillGraph } from './UiKit';
 import { ScanController } from '../services/ScanController';
+import { ResourceAuditController } from '../services/ResourceAudit';
 import { HomePage } from './pages/HomePage';
 import { CheckPage } from './pages/CheckPage';
+import { ResourcePage } from './pages/ResourcePage';
 import { QuickPage } from './pages/QuickPage';
 import { NamingPage } from './pages/NamingPage';
 import { LayoutPage } from './pages/LayoutPage';
@@ -30,6 +32,8 @@ export interface Page {
     buildFooter?(ctx: PageContext): void;
 }
 
+export const MAIN_PANEL_PAGE_COUNT = 10;
+
 export class MainPanel {
     view: FairyGUI.GComponent;
     private pages: Page[] = [];
@@ -50,6 +54,7 @@ export class MainPanel {
         this.pages = [
             new HomePage(),
             new CheckPage(),
+            new ResourcePage(),
             new QuickPage(),
             new NamingPage(),
             new LayoutPage(),
@@ -80,6 +85,7 @@ export class MainPanel {
 
         const self = this;
         ScanController.onChanged(() => { self.rebuildBody(); });
+        ResourceAuditController.onChanged(() => { self.rebuildBody(); });
         try {
             this.view.onSizeChanged.Add(() => {
                 if (self._applyingSize) return;

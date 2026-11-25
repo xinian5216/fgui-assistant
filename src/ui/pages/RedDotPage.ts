@@ -2,6 +2,9 @@ import { FairyGUI } from 'csharp';
 import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, createLabel, createHLine, createTag, toast } from '../UiKit';
 import { getActiveDoc, switchControllerPage, readControllers, getCurrentComponentName } from '../../services/EditorService';
+import { createRedDot } from '../../services/RedDotService';
+import { ScanController } from '../../services/ScanController';
+import { alert } from '../../Api';
 import { Config } from '../../core/Config';
 import { ControllerInfo } from '../../core/Types';
 
@@ -28,10 +31,22 @@ export class RedDotPage implements Page {
         const matched = controllers.filter(c => (c.name || "").toLowerCase().indexOf((cfg.controllerNamePattern || "HongDian").toLowerCase()) >= 0);
 
         col.add(createLabel(`当前组件：${getCurrentComponentName()}`, { size: 12, color: COLORS.textDim, width: width, wrap: true }), 18);
+
+        const btnCreate = new UiButton("一键创建红点（选中红点对象后点击）", {
+            w: width, h: 26, size: 11, bg: COLORS.accent, hover: COLORS.accentHover, color: "#fff",
+            onClick: () => {
+                const res = createRedDot();
+                if (!res.ok) alert(res.message);
+                else toast(res.message);
+                ScanController.notify();
+            }
+        });
+        col.add(btnCreate.view, 26);
+
         col.add(createLabel(`红点控制器（名称包含「${cfg.controllerNamePattern}」，共 ${matched.length} 个）`, { size: 13, bold: true, color: COLORS.text, width: width, wrap: true }), 20);
 
         if (matched.length == 0) {
-            col.add(createLabel("未找到红点控制器。\n\n创建控制器涉及显示状态联动，为保证安全，插件不自动创建，请在 FairyGUI 中手动创建：\n1. 新建控制器，名称如 C_HongDian\n2. 添加两个页面：0（无红点）/ 1（有红点）\n3. 默认页面设为 0\n4. 红点对象显示状态绑定到该控制器", { size: 11, color: COLORS.textDim, width: width, wrap: true }), 130);
+            col.add(createLabel("未找到红点控制器。\n可点击上方「一键创建红点」自动创建 0/1 控制器；若已选中红点图片，会尝试自动绑定显示控制（页 1 显示），可 Ctrl+Z 撤销。", { size: 11, color: COLORS.textDim, width: width, wrap: true }), 68);
         }
 
         for (const ctrl of matched) {
@@ -111,7 +126,7 @@ export class RedDotPage implements Page {
             col.add(box, y);
         }
 
-        col.add(createLabel("说明：红点 0/1 状态下红点对象的显隐绑定（gearDisplay）请人工确认；插件不自动创建控制器，避免生成错误结构。", { size: 10, color: COLORS.textDim, width: width, wrap: true }), 30);
+        col.add(createLabel("说明：如未自动绑定显示控制（gearDisplay），请选中红点对象并在『显示控制』中勾选页 1；所有修改支持 Ctrl+Z 撤销。", { size: 10, color: COLORS.textDim, width: width, wrap: true }), 32);
 
         col.finish();
         content.AddChild(col.com);

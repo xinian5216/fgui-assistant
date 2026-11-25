@@ -7,7 +7,7 @@ const UiKit_1 = require("./UiKit");
 const MainPanel_1 = require("./MainPanel");
 const Layout_1 = require("./Layout");
 const Scroll_1 = require("./Scroll");
-const TAB_COUNT = 9;
+const TAB_COUNT = MainPanel_1.MAIN_PANEL_PAGE_COUNT;
 class FloatingWindow {
     constructor() {
         this.win = null;

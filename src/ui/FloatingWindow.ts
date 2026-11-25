@@ -1,11 +1,11 @@
 import { FairyGUI } from 'csharp';
 import { App } from '../Api';
 import { COLORS, createGraph, createLabel, fillGraph } from './UiKit';
-import { MainPanel } from './MainPanel';
+import { MainPanel, MAIN_PANEL_PAGE_COUNT } from './MainPanel';
 import { LAYOUT, computeMinWindow, computeDefaultWindow, clamp } from './Layout';
 import { applyClip } from './Scroll';
 
-const TAB_COUNT = 9;
+const TAB_COUNT = MAIN_PANEL_PAGE_COUNT;
 
 export class FloatingWindow {
     private win: FairyGUI.GComponent = null;

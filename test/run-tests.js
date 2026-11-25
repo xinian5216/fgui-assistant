@@ -117,9 +117,30 @@ const csharpMock = {
                 if (i >= 0) projectHandlers.closed.splice(i, 1);
             }
         },
-        FontUtil: { GetOSInstalledFontNames: () => ({ Count: 0, get_Item: () => null }) }
+        FontUtil: { GetOSInstalledFontNames: () => ({ Count: 0, get_Item: () => null }) },
+        ProcessUtil: {
+            GetAppVersion: () => '6.1.4-mock',
+            Start: () => ''
+        },
+        BuilderUtil: {
+            RevealInExplorer: () => { },
+            GetMD5HashFromFile: () => 'mockmd5'
+        },
+        Clipboard: {
+            SetText: () => { }
+        }
     },
     System: {
+        Type: {
+            GetType: (name) => name
+        },
+        Array: {
+            CreateInstance: (t, len) => {
+                const a = new Array(len);
+                a.SetValue = (v, i) => { a[i] = v; };
+                return a;
+            }
+        },
         IO: {
             File: {
                 Exists: (p) => fs.existsSync(p),
@@ -129,6 +150,9 @@ const csharpMock = {
             Directory: {
                 Exists: (p) => fs.existsSync(p),
                 CreateDirectory: (p) => fs.mkdirSync(p, { recursive: true })
+            },
+            FileInfo: class FileInfo {
+                constructor(p) { this.Length = BigInt(fs.statSync(p).size); }
             }
         }
     },
@@ -423,6 +447,9 @@ assert(rootItems.get('fguiAssistantMain').isSubMenu === true, '顶级菜单声�
 const sub1 = rootMenu._submenus.get('fguiAssistantMain');
 assert(sub1 && sub1._items.has('fguiAssistantOpen'), '子菜单包含「打开助手窗口」命令');
 assert(sub1 && sub1._items.has('fguiAssistantScan'), '子菜单包含「检查当前组件」命令');
+assert(sub1 && sub1._items.has('fguiAssistantSvnUpdate'), '子菜单包含「SVN 更新项目」命令');
+assert(sub1 && sub1._items.has('fguiAssistantSvnCommit'), '子菜单包含「SVN 提交当前包」命令');
+assert(sub1 && sub1._items.has('fguiAssistantEnv'), '子菜单包含「环境自检」命令');
 
 // 正常卸载：菜单移除 + 监听全部解除
 plugin1.onDestroy();
@@ -441,12 +468,15 @@ delete require.cache[require.resolve(mainPath)];
 const plugin3 = require(mainPath);
 assert(rootItems.size === 1 && rootItems.has('fguiAssistantMain'), '异常 reload（未清理）后顶级菜单不重复');
 const sub3 = rootMenu._submenus.get('fguiAssistantMain');
-assert(sub3 && sub3._items.size === 2, '异常 reload 后子菜单命令不重复');
+assert(sub3 && sub3._items.size === 5, '异常 reload 后子菜单命令不重复');
 
 // 菜单命令回调可安全调用（不抛异常）
 let invoked = true;
 try { sub3.Invoke('fguiAssistantOpen'); } catch (e) { invoked = false; }
 try { sub3.Invoke('fguiAssistantScan'); } catch (e) { invoked = false; }
+try { sub3.Invoke('fguiAssistantSvnUpdate'); } catch (e) { invoked = false; }
+try { sub3.Invoke('fguiAssistantSvnCommit'); } catch (e) { invoked = false; }
+try { sub3.Invoke('fguiAssistantEnv'); } catch (e) { invoked = false; }
 assert(invoked, '菜单命令回调可安全调用');
 
 // 最终清理（含重复 destroy 的健壮性）
@@ -454,6 +484,116 @@ plugin3.onDestroy();
 plugin2.onDestroy();
 assert(!rootItems.has('fguiAssistantMain'), '最终卸载后顶级菜单已移除');
 assert(editorEventLog.length === 0, '最终卸载后无残留事件监听');
+
+console.log('== v0.2.0 Config 扩展 ==');
+const partialV2 = {
+    configVersion: CONFIG_VERSION,
+    svn: {},
+    resourceCheck: { maxImageKB: 256 }
+};
+fs.writeFileSync(path.join(tmpBase, 'plugins', 'FGUIAssistant', 'config.json'), JSON.stringify(partialV2));
+Config.load();
+assert(Config.config.configVersion === 2, 'CONFIG_VERSION 保持 2');
+assert(Config.config.svn && Config.config.svn.tortoiseProcPath.indexOf('TortoiseProc.exe') >= 0, '缺失 svn 默认路径自动补齐');
+assert(Config.config.resourceCheck && Config.config.resourceCheck.maxImageKB === 256, '用户自定义 maxImageKB 保留');
+assert(Config.config.resourceCheck && Config.config.resourceCheck.checkDuplicate === true, '缺失 checkDuplicate 自动补默认 true');
+Config.update(c => {
+    const d = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    for (const k of Object.keys(d)) c[k] = d[k];
+});
+
+console.log('== 一键红点 XML 与规则联动 ==');
+const { buildRedDotControllerXml, defaultRedDotControllerName } = dist('services', 'RedDotService.js');
+const rdName = defaultRedDotControllerName(Config.config);
+assert(rdName === 'C_HongDian', '默认红点控制器名包含 Controller 前缀 C_');
+const rdXml = buildRedDotControllerXml(rdName, Config.config.redDot.pageOff, Config.config.redDot.pageOn);
+assert(rdXml === '<controller name="C_HongDian" pages="0,,1," selected="0"/>', '生成与原生一致的红点控制器 XML');
+const xmlWithGeneratedRd = `<?xml version="1.0" encoding="utf-8"?>
+<component size="200,80">
+  ${rdXml}
+  <displayList/>
+</component>`;
+const rdModel = parseComponentXml(xmlWithGeneratedRd, pi);
+const rdScan = Engine.runScan(rdModel);
+assert(!rdScan.issues.some(i => i.ruleId === 'redDot'), '生成的红点 XML 通过 RedDotRule 检查');
+assert(!rdScan.issues.some(i => i.ruleId === 'naming' && i.objectName === rdName), '生成的红点控制器名通过 NamingRule 检查');
+
+console.log('== SVN 参数与单包路径 ==');
+const { buildSvnArgs, getPackageFolderPath } = dist('services', 'SvnService.js');
+const upArgs = buildSvnArgs('update', 'D:\\proj');
+assert(upArgs[0] === '/command:update' && upArgs[1] === '/path:D:\\proj' && upArgs[2] === '/closeonend:0', 'SVN update 参数正确');
+const pkgDir = getPackageFolderPath('D:\\proj\\', 'PkgA');
+assert(pkgDir.endsWith('/assets/PkgA'), 'SVN commit 目标为单个包目录: ' + pkgDir);
+const ciArgs = buildSvnArgs('commit', pkgDir);
+assert(ciArgs[0] === '/command:commit' && ciArgs[1] === '/path:' + pkgDir, 'SVN commit 参数正确');
+
+console.log('== 环境自检报告 ==');
+const { formatEnvCheckReport } = dist('services', 'EnvCheck.js');
+const report = formatEnvCheckReport([
+    { name: '编辑器版本', ok: true, detail: '6.1.4' },
+    { name: 'TortoiseSVN', ok: false, detail: '未找到' }
+]);
+assert(report.indexOf('1/2 通过') >= 0 && report.indexOf('✓ 编辑器版本') >= 0 && report.indexOf('✕ TortoiseSVN') >= 0, '环境自检报告格式化正确');
+
+console.log('== 资源体检（ResourceAudit） ==');
+const { parsePackageXml, collectComponentRefs, collectFontRefs, auditResources } = dist('services', 'ResourceAudit.js');
+const pkgAXml = `<?xml version="1.0" encoding="utf-8"?>
+<packageDescription id="pkgaaaaa">
+  <resources>
+    <component id="comp1" name="Main.xml" path="/" exported="true"/>
+    <image id="imgUsed" name="used.png" path="/"/>
+    <image id="imgUnused" name="unused.png" path="/"/>
+    <image id="imgBig" name="big.png" path="/"/>
+    <image id="imgDupA" name="dupA.png" path="/"/>
+    <font id="fnt1" name="Num.fnt" path="/"/>
+    <image id="imgGlyph" name="g0.png" path="/"/>
+  </resources>
+</packageDescription>`;
+const pkgBXml = `<?xml version="1.0" encoding="utf-8"?>
+<packageDescription id="pkgbbbbb">
+  <resources>
+    <image id="bUnexp" name="secret.png" path="/"/>
+    <image id="bExp" name="shared.png" path="/" exported="true"/>
+    <image id="bCrossUsed" name="cross.png" path="/"/>
+    <image id="imgDupB" name="dupB.png" path="/"/>
+  </resources>
+</packageDescription>`;
+const apA = parsePackageXml(pkgAXml, 'PkgA');
+const apB = parsePackageXml(pkgBXml, 'PkgB');
+assert(apA.id === 'pkgaaaaa' && apA.items.length === 7, 'parsePackageXml 解析 PkgA 成功');
+assert(apB.id === 'pkgbbbbb' && apB.items.length === 4, 'parsePackageXml 解析 PkgB 成功');
+
+const bigItem = apA.items.find(x => x.id === 'imgBig');
+bigItem.sizeBytes = 600 * 1024;
+apA.items.find(x => x.id === 'imgDupA').md5 = 'SAME_HASH';
+apB.items.find(x => x.id === 'imgDupB').md5 = 'SAME_HASH';
+
+const compAXml = `<component size="1280,720"><displayList>
+  <image id="n1" name="a" src="imgUsed"/>
+  <image id="n2" name="b" src="imgBig"/>
+  <image id="n3" name="c" src="imgDupA"/>
+  <image id="n4" name="d" src="bUnexp" pkg="pkgbbbbb"/>
+  <image id="n5" name="e" src="bExp" pkg="pkgbbbbb"/>
+  <loader id="n6" name="f" url="ui://pkgbbbbbbCrossUsed"/>
+</displayList></component>`;
+const fntAText = `char id=48 img=imgGlyph xoffset=0 yoffset=0 xadvance=10`;
+const refsA = collectComponentRefs(compAXml, 'pkgaaaaa', 'PkgA', 'Main');
+const refsFnt = collectFontRefs(fntAText, 'pkgaaaaa', 'PkgA', 'Num.fnt');
+const allRefs = refsA.concat(refsFnt);
+assert(refsA.some(r => r.toPkgId === 'pkgbbbbb' && r.toResId === 'bCrossUsed'), 'ui:// 跨包引用解析正确');
+assert(refsFnt.some(r => r.toPkgId === 'pkgaaaaa' && r.toResId === 'imgGlyph'), '.fnt 位图字体图元引用解析正确');
+
+const auditAll = auditResources([apA, apB], allRefs, { maxImageKB: 512, checkDuplicate: true });
+assert(auditAll.some(i => i.kind === 'crossUnexported' && i.severity === 'error' && i.resName === 'secret.png'), '跨包引用未导出资源报 error');
+assert(!auditAll.some(i => i.kind === 'crossUnexported' && i.resName === 'shared.png'), '跨包引用已导出资源不报错');
+assert(auditAll.some(i => i.kind === 'unused' && i.severity === 'warning' && i.resName === 'unused.png'), '未使用图片报 warning');
+assert(!auditAll.some(i => i.kind === 'unused' && i.resName === 'g0.png'), '.fnt 引用的图元不报未使用');
+assert(!auditAll.some(i => i.kind === 'unused' && i.resName === 'Main.xml'), 'exported 组件不报未使用');
+assert(auditAll.some(i => i.kind === 'largeImage' && i.resName === 'big.png'), '超大图片报 warning');
+assert(auditAll.some(i => i.kind === 'duplicateImage' && i.severity === 'info'), 'MD5 重复图片报 info');
+
+const auditScopeB = auditResources([apA, apB], allRefs, { scopePkgId: 'pkgbbbbb', maxImageKB: 512, checkDuplicate: true });
+assert(!auditScopeB.some(i => i.kind === 'unused' && i.resName === 'cross.png'), '单包体检保留跨包引用，不误报未使用');
 
 console.log(`\n结果: ${passed} 通过, ${failed} 失败`);
 process.exit(failed > 0 ? 1 : 0);

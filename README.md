@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/xinian5216/fgui-assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.4-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.2.0-green.svg)](CHANGELOG.md)
 
 FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工记忆的 UI 规范变成可视化检查流程。
 
@@ -11,7 +11,7 @@ FairyGUI Editor 项目辅助插件。目标不是炫技，而是把依赖人工�
 - 能安全修复的项目提供一键修复
 - 需要设计师判断的项目只提示，不擅自修改
 
-**版本：** 0.1.4  
+**版本：** 0.2.0  
 **语言：** TypeScript  
 **推荐编辑器：** FairyGUI Editor 2021.3 及以上（API 基于 2021.3.0 公开类型定义）
 
@@ -46,7 +46,7 @@ npm run pack
 5. 入口：
 
 - 检查器（Inspector）面板中的 **FGUI Assistant**
-- 主菜单 **FGUI Assistant → 打开助手窗口**（打开独立窗口；子菜单还提供「检查当前组件」）
+- 主菜单 **FGUI Assistant → 打开助手窗口**（打开独立窗口；子菜单还提供「检查当前组件」「SVN 更新项目」「SVN 提交当前包」「环境自检」）
 
 ---
 
@@ -110,13 +110,14 @@ FGUIAssistant/
 |------|------|
 | 首页 | 当前 Package/组件、公共资源横幅、最近检查摘要（最多 5 条）、查看全部问题、一键修复安全项 |
 | 规范检查 | 检查当前组件 / 当前 Package / 整个项目（分批 + 进度）；顶部筛选固定，结果列表在 Viewport 内虚拟滚动 |
+| 资源体检 | 只读扫描当前 Package 或整个项目：跨包引用未导出资源、未使用资源、超大图片、MD5 重复图片（支持资源库定位/打开目录） |
 | 快速设置 | 对当前选中对象批量：按钮缩放、设为单选、文字轴心、常用字体 |
 | 命名助手 | 显示类型与前缀，加前缀 / 应用名称，扫描命名异常 |
 | 布局模板 | 把选中对象保存为标准位置，之后应用到其他页面 |
-| 红点 | 检查红点 Controller 的 0/1 页与默认页，测试切换 |
-| 发布 | 发布工作流清单 + 发布路径回填 |
+| 红点 | 一键创建 0/1 红点控制器并尝试绑定选中对象显示控制；检查 0/1 页与默认页、测试切换 |
+| 发布 | 发布工作流清单 + 一键 SVN 更新/提交当前包 + 发布路径回填/打开目录/复制路径 |
 | PS 清单 | 设计稿人工核对清单（按组件绑定） |
-| 设置 | 按钮缩放、字体、受保护 Package、命名规则；内容区滚动，底部「重新加载 / 恢复默认 / 保存」固定 |
+| 设置 | 按钮缩放、字体、受保护 Package、命名规则、红点、SVN 路径、资源体检阈值；内容区滚动，底部固定 |
 
 ---
 
@@ -208,14 +209,14 @@ Controller  → C_
 
 以下能力因公开 API 无法可靠实现，已降级，**没有使用私有 API 或修改编辑器本体**：
 
-1. **不自动创建红点 Controller**  
-   创建涉及 gearDisplay 绑定，容易生成错误结构。第一版只做检查 + 测试切换。
+1. **一键创建红点（gearDisplay 绑定降级）**  
+   创建 0/1 控制器（`AddController`）并尝试绑定选中对象的显示控制（`SetGearProperty`）；若个别版本下 `gearDisplay` 写入未生效，会保留控制器并提示在「显示控制」中手动勾选页 1。
 
 2. **屏幕适配不能一键写入**  
    项目级 Adaptation 设置可读性因版本而异；组件级「全屏」属性在公开 API 中不稳定。Main 组件仅提醒，提供「定位设置」说明。
 
-3. **不能自动触发 FairyGUI 发布 / Unity Ctrl+R / 虚拟构建 / SVN**  
-   发布页中除「发布路径」（由 `onPublish` 回填）外均为人工确认项。不会假装插件完成了它无法验证的步骤。
+3. **外部工具与 Unity 操作限制**  
+   SVN 更新/提交通过 `TortoiseProc.exe` 拉起弹窗（Windows 需已安装 TortoiseSVN）；FairyGUI 发布、Unity `Ctrl+R` 与虚拟构建仍需手动触发与确认。
 
 4. **布局模板不自动应用 Relation**  
    第一版保存并应用 x/y/宽高/轴心。Relation 请在编辑器中确认。
@@ -270,7 +271,7 @@ npm run watch          # 改源码后自动编译
 npm test
 ```
 
-对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层 / 窗口布局与虚拟列表数学 / 滚轮方向做 Node 冒烟测试（当前 105 项，不启动 FairyGUI）。
+对配置合并、XML 解析、命名 / 按钮缩放 / 轴心 / 红点 / 公共资源 / 忽略 / 布局模板 / 全项目扫描 / 菜单注册层 / 窗口布局与虚拟列表数学 / 滚轮方向 / 一键红点 / SVN 参数 / 环境自检 / 资源体检做 Node 冒烟测试（当前 132 项，不启动 FairyGUI）。
 
 实际编辑器内测试仍需在 FairyGUI 中完成。
 

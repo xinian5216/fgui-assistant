@@ -10,6 +10,12 @@ exports.callLater = callLater;
 exports.toArray = toArray;
 exports.joinPath = joinPath;
 exports.fileExists = fileExists;
+exports.dirExists = dirExists;
+exports.getFileSize = getFileSize;
+exports.getFileMd5 = getFileMd5;
+exports.revealInExplorer = revealInExplorer;
+exports.copyToClipboard = copyToClipboard;
+exports.getEditorVersion = getEditorVersion;
 exports.readTextFile = readTextFile;
 exports.writeTextFile = writeTextFile;
 exports.activeDoc = activeDoc;
@@ -100,6 +106,64 @@ function fileExists(path) {
     }
     catch (e) {
         return false;
+    }
+}
+function dirExists(path) {
+    try {
+        return !!path && exports.Sys.IO.Directory.Exists(path);
+    }
+    catch (e) {
+        return false;
+    }
+}
+function getFileSize(path) {
+    try {
+        if (!path || !exports.Sys.IO.File.Exists(path))
+            return -1;
+        const info = new exports.Sys.IO.FileInfo(path);
+        const len = Number(info.Length);
+        return isNaN(len) ? -1 : len;
+    }
+    catch (e) {
+        return -1;
+    }
+}
+function getFileMd5(path) {
+    try {
+        if (!path || !exports.Sys.IO.File.Exists(path))
+            return "";
+        return "" + (exports.FEditor.BuilderUtil.GetMD5HashFromFile(path) || "");
+    }
+    catch (e) {
+        return "";
+    }
+}
+function revealInExplorer(path) {
+    try {
+        if (!path)
+            return false;
+        exports.FEditor.BuilderUtil.RevealInExplorer(path);
+        return true;
+    }
+    catch (e) {
+        return false;
+    }
+}
+function copyToClipboard(text) {
+    try {
+        exports.FEditor.Clipboard.SetText(text || "");
+        return true;
+    }
+    catch (e) {
+        return false;
+    }
+}
+function getEditorVersion() {
+    try {
+        return "" + (exports.FEditor.ProcessUtil.GetAppVersion() || "");
+    }
+    catch (e) {
+        return "";
     }
 }
 function readTextFile(path) {

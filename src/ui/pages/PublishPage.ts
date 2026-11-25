@@ -3,9 +3,10 @@ import { Page, PageContext } from '../MainPanel';
 import { Column, COLORS, UiButton, UiCheckbox, createLabel, toast } from '../UiKit';
 import { Config } from '../../core/Config';
 import { Store } from '../../core/Store';
-import { App, nowStr, alert } from '../../Api';
+import { App, nowStr, alert, dirExists, revealInExplorer, copyToClipboard } from '../../Api';
 import { getCurrentPackageName } from '../../services/EditorService';
 import { getPackageByName } from '../../services/ScanService';
+import { svnUpdateProject, svnCommitCurrentPackage } from '../../services/SvnService';
 import { LAYOUT } from '../Layout';
 
 const AUTO_STEP_INDEX = 3;
@@ -40,9 +41,16 @@ export class PublishPage implements Page {
             y += 22;
 
             if (i == 0) {
+                const bw = Math.max(80, Math.min(125, Math.floor((width - 30) / 2)));
                 const row: FairyGUI.GComponent = new FairyGUI.GComponent();
-                const btn = new UiButton("记录本次 SVN Update 时间", {
-                    w: 170, h: 20, size: 11,
+                const btnSvn = new UiButton("执行 SVN 更新", {
+                    w: bw, h: 20, size: 11,
+                    onClick: () => { svnUpdateProject(); }
+                });
+                btnSvn.view.SetXY(24, 0);
+                row.AddChild(btnSvn.view);
+                const btn = new UiButton("记录 Update 时间", {
+                    w: bw, h: 20, size: 11,
                     onClick: () => {
                         Store.markSvnUpdate();
                         Store.setPublishStep(0, true, steps.length);
@@ -50,16 +58,18 @@ export class PublishPage implements Page {
                         ScanNotify();
                     }
                 });
-                btn.view.SetXY(24, 0);
+                btn.view.SetXY(24 + bw + 6, 0);
                 row.AddChild(btn.view);
-                const lastStr = state.lastSvnUpdate ? `上次确认：${formatTime(state.lastSvnUpdate)}` : "尚未记录";
-                const lb = createLabel(lastStr, { size: 11, color: COLORS.textDim });
-                lb.SetXY(200, 3);
-                row.AddChild(lb);
                 row.SetSize(width, 22);
                 box.AddChild(row);
                 row.SetXY(0, y);
                 y += 24;
+
+                const lastStr = state.lastSvnUpdate ? `上次确认：${formatTime(state.lastSvnUpdate)}` : "尚未记录";
+                const lb = createLabel(lastStr, { size: 11, color: COLORS.textDim, width: width - 30, wrap: true });
+                lb.SetXY(24, y);
+                box.AddChild(lb);
+                y += lb.height + 4;
             }
             if (i == 2) {
                 const btn = new UiButton("检查发布设置", {
@@ -77,12 +87,41 @@ export class PublishPage implements Page {
                 lb.SetXY(24, y);
                 box.AddChild(lb);
                 y += lb.height + 4;
+                if (lp && lp.exportPath) {
+                    const bw = Math.max(80, Math.min(115, Math.floor((width - 30) / 2)));
+                    const bOpen = new UiButton("打开发布目录", {
+                        w: bw, h: 20, size: 11,
+                        onClick: () => {
+                            if (!dirExists(lp.exportPath)) { alert("目录不存在：" + lp.exportPath); return; }
+                            if (!revealInExplorer(lp.exportPath)) toast("打开目录失败");
+                        }
+                    });
+                    bOpen.view.SetXY(24, y);
+                    box.AddChild(bOpen.view);
+                    const bCopy = new UiButton("复制路径", {
+                        w: bw, h: 20, size: 11,
+                        onClick: () => {
+                            if (copyToClipboard(lp.exportPath)) toast("已复制发布路径");
+                            else toast("复制失败，路径：" + lp.exportPath);
+                        }
+                    });
+                    bCopy.view.SetXY(24 + bw + 6, y);
+                    box.AddChild(bCopy.view);
+                    y += 24;
+                }
             }
             if (i == steps.length - 1) {
                 const lb = createLabel("提交前请确认：\n□ 已重新 SVN Update\n□ 当前 Commit 仅涉及一个目标目录", { size: 11, color: COLORS.warning, width: width - 30, wrap: true });
                 lb.SetXY(24, y);
                 box.AddChild(lb);
                 y += lb.height + 4;
+                const bCi = new UiButton("SVN 提交当前包", {
+                    w: Math.min(160, Math.max(100, width - 30)), h: 22, size: 11,
+                    onClick: () => { svnCommitCurrentPackage(); }
+                });
+                bCi.view.SetXY(24, y);
+                box.AddChild(bCi.view);
+                y += 26;
             }
             box.SetSize(width, y);
             col.add(box, y);

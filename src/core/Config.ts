@@ -54,6 +54,13 @@ export interface AssistantConfig {
     };
     publishChecklist: string[];
     psChecklist: string[];
+    svn: {
+        tortoiseProcPath: string;
+    };
+    resourceCheck: {
+        maxImageKB: number;
+        checkDuplicate: boolean;
+    };
 }
 
 export const DEFAULT_CONFIG: AssistantConfig = {
@@ -110,7 +117,14 @@ export const DEFAULT_CONFIG: AssistantConfig = {
         "发光已核对",
         "描边已核对",
         "其他 PS 特效已核对"
-    ]
+    ],
+    svn: {
+        tortoiseProcPath: "C:\\Program Files\\TortoiseSVN\\bin\\TortoiseProc.exe"
+    },
+    resourceCheck: {
+        maxImageKB: 512,
+        checkDuplicate: true
+    }
 };
 
 function cloneDefaults(): AssistantConfig {
@@ -125,7 +139,7 @@ function mergeConfig(base: AssistantConfig, override: any): AssistantConfig {
         if (v === null || v === undefined) continue;
         if (k == "namingRules" && typeof v == "object") {
             out.namingRules = Object.assign({}, base.namingRules, v);
-        } else if (k == "redDot" || k == "screenAdapt" || k == "mainComplexity") {
+        } else if (k == "redDot" || k == "screenAdapt" || k == "mainComplexity" || k == "svn" || k == "resourceCheck") {
             out[k] = Object.assign({}, (base as any)[k], v);
         } else {
             out[k] = v;

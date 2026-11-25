@@ -70,7 +70,14 @@ exports.DEFAULT_CONFIG = {
         "发光已核对",
         "描边已核对",
         "其他 PS 特效已核对"
-    ]
+    ],
+    svn: {
+        tortoiseProcPath: "C:\\Program Files\\TortoiseSVN\\bin\\TortoiseProc.exe"
+    },
+    resourceCheck: {
+        maxImageKB: 512,
+        checkDuplicate: true
+    }
 };
 function cloneDefaults() {
     return JSON.parse(JSON.stringify(exports.DEFAULT_CONFIG));
@@ -86,7 +93,7 @@ function mergeConfig(base, override) {
         if (k == "namingRules" && typeof v == "object") {
             out.namingRules = Object.assign({}, base.namingRules, v);
         }
-        else if (k == "redDot" || k == "screenAdapt" || k == "mainComplexity") {
+        else if (k == "redDot" || k == "screenAdapt" || k == "mainComplexity" || k == "svn" || k == "resourceCheck") {
             out[k] = Object.assign({}, base[k], v);
         }
         else {

@@ -6,7 +6,7 @@
 
 FairyGUI Editor 插件（TypeScript → `dist/`）。编辑器加载 `dist/main.js`。目标：把 UI 规范变成检查/安全修复，不擅自改需要设计师判断的内容。
 
-当前版本见 `package.json`（0.1.4）。公开类型以 `typings/editor.d.ts` 为准，不要猜未导出 API。
+当前版本见 `package.json`（0.2.0）。公开类型以 `typings/editor.d.ts` 为准，不要猜未导出 API。
 
 ## 命令
 
@@ -56,7 +56,7 @@ FloatingWindow Root（opaque + clip，背景随窗口拉伸）
 | `src/Api.ts` | 编辑器 API 安全封装 |
 | `src/core/` | Config / Store / RuleEngine / Types |
 | `src/rules/` | 检查规则 |
-| `src/services/` | 扫描、修复、字体、编辑器对象 |
+| `src/services/` | 扫描、修复、字体、编辑器对象、环境自检、红点创建、SVN、资源体检 |
 | `src/ui/Layout.ts` | 布局常量、滚动几何 |
 | `src/ui/Scroll.ts` | clip / VScroll / VirtualList |
 | `src/ui/MainPanel.ts` | Tab + Viewport |
@@ -67,7 +67,7 @@ FloatingWindow Root（opaque + clip，背景随窗口拉伸）
 
 ## 测试
 
-`test/run-tests.js` 当前 **105** 项：配置、XML、规则、忽略、全项目扫描、MenuBar NRE 回归、布局/虚拟列表数学、滚轮方向。
+`test/run-tests.js` 当前 **132** 项：配置、XML、规则、忽略、全项目扫描、MenuBar NRE 回归、布局/虚拟列表数学、滚轮方向、一键红点、SVN 参数、环境自检、资源体检。
 
 改 UI 后至少跑 `npm test`。无法在 Node 里测真实 clipRect / 滚轮，发版前需 FairyGUI 实机（见 README「Editor Integration Test」）。
 

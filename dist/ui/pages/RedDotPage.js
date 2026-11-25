@@ -4,6 +4,9 @@ exports.RedDotPage = void 0;
 const csharp_1 = require("csharp");
 const UiKit_1 = require("../UiKit");
 const EditorService_1 = require("../../services/EditorService");
+const RedDotService_1 = require("../../services/RedDotService");
+const ScanController_1 = require("../../services/ScanController");
+const Api_1 = require("../../Api");
 const Config_1 = require("../../core/Config");
 class RedDotPage {
     constructor() {
@@ -29,9 +32,21 @@ class RedDotPage {
         catch (e) { }
         const matched = controllers.filter(c => (c.name || "").toLowerCase().indexOf((cfg.controllerNamePattern || "HongDian").toLowerCase()) >= 0);
         col.add((0, UiKit_1.createLabel)(`当前组件：${(0, EditorService_1.getCurrentComponentName)()}`, { size: 12, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 18);
+        const btnCreate = new UiKit_1.UiButton("一键创建红点（选中红点对象后点击）", {
+            w: width, h: 26, size: 11, bg: UiKit_1.COLORS.accent, hover: UiKit_1.COLORS.accentHover, color: "#fff",
+            onClick: () => {
+                const res = (0, RedDotService_1.createRedDot)();
+                if (!res.ok)
+                    (0, Api_1.alert)(res.message);
+                else
+                    (0, UiKit_1.toast)(res.message);
+                ScanController_1.ScanController.notify();
+            }
+        });
+        col.add(btnCreate.view, 26);
         col.add((0, UiKit_1.createLabel)(`红点控制器（名称包含「${cfg.controllerNamePattern}」，共 ${matched.length} 个）`, { size: 13, bold: true, color: UiKit_1.COLORS.text, width: width, wrap: true }), 20);
         if (matched.length == 0) {
-            col.add((0, UiKit_1.createLabel)("未找到红点控制器。\n\n创建控制器涉及显示状态联动，为保证安全，插件不自动创建，请在 FairyGUI 中手动创建：\n1. 新建控制器，名称如 C_HongDian\n2. 添加两个页面：0（无红点）/ 1（有红点）\n3. 默认页面设为 0\n4. 红点对象显示状态绑定到该控制器", { size: 11, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 130);
+            col.add((0, UiKit_1.createLabel)("未找到红点控制器。\n可点击上方「一键创建红点」自动创建 0/1 控制器；若已选中红点图片，会尝试自动绑定显示控制（页 1 显示），可 Ctrl+Z 撤销。", { size: 11, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 68);
         }
         for (const ctrl of matched) {
             const box = new csharp_1.FairyGUI.GComponent();
@@ -113,7 +128,7 @@ class RedDotPage {
             box.SetSize(width, y);
             col.add(box, y);
         }
-        col.add((0, UiKit_1.createLabel)("说明：红点 0/1 状态下红点对象的显隐绑定（gearDisplay）请人工确认；插件不自动创建控制器，避免生成错误结构。", { size: 10, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 30);
+        col.add((0, UiKit_1.createLabel)("说明：如未自动绑定显示控制（gearDisplay），请选中红点对象并在『显示控制』中勾选页 1；所有修改支持 Ctrl+Z 撤销。", { size: 10, color: UiKit_1.COLORS.textDim, width: width, wrap: true }), 32);
         col.finish();
         content.AddChild(col.com);
     }
